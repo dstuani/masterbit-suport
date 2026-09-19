@@ -128,6 +128,67 @@ export type Database = {
           },
         ];
       };
+      atendimento_anexos: {
+        Row: {
+          id: string;
+          org_id: string;
+          atendimento_id: string;
+          caminho: string;
+          nome_original: string;
+          tipo_mime: string;
+          tamanho_bytes: number;
+          enviado_por: string | null;
+          removido_em: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          atendimento_id: string;
+          caminho: string;
+          nome_original: string;
+          tipo_mime: string;
+          tamanho_bytes: number;
+          enviado_por?: string | null;
+          removido_em?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          atendimento_id?: string;
+          caminho?: string;
+          nome_original?: string;
+          tipo_mime?: string;
+          tamanho_bytes?: number;
+          enviado_por?: string | null;
+          removido_em?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_anexos_atendimento_id_fkey";
+            columns: ["atendimento_id"];
+            isOneToOne: false;
+            referencedRelation: "atendimentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "atendimento_anexos_enviado_por_fkey";
+            columns: ["enviado_por"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "atendimento_anexos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       atendimento_interacoes: {
         Row: {
           id: string;

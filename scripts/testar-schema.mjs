@@ -337,6 +337,45 @@ async function main() {
   const { rows: promovido } = await db.query(`select role from profiles where id = $1`, [tecnicoId]);
   verificar("owner altera o papel de outro usuário", promovido[0].role === "visualizador");
 
+  // ── Anexos ──
+  const { rows: alvo } = await db.query(`select id from atendimentos limit 1`);
+  const alvoId = alvo[0].id;
+  const caminhoOk = `${orgId}/${alvoId}/${crypto.randomUUID()}.png`;
+  await db.exec(
+    `insert into atendimento_anexos (org_id, atendimento_id, caminho, nome_original, tipo_mime, tamanho_bytes, enviado_por)
+     values ('${orgId}', '${alvoId}', '${caminhoOk}', 'print.png', 'image/png', 2048, '${userId}')`,
+  );
+  verificar("anexo válido é aceito", true);
+
+  await deveRejeitar(
+    db,
+    "recusa anexo maior que 10 MB",
+    `insert into atendimento_anexos (org_id, atendimento_id, caminho, nome_original, tipo_mime, tamanho_bytes)
+     values ('${orgId}', '${alvoId}', '${orgId}/${alvoId}/${crypto.randomUUID()}.zip', 'grande.zip', 'application/zip', 10485761)`,
+    "anexos_tamanho_valido",
+  );
+  await deveRejeitar(
+    db,
+    "recusa caminho que não começa pela organização",
+    `insert into atendimento_anexos (org_id, atendimento_id, caminho, nome_original, tipo_mime, tamanho_bytes)
+     values ('${orgId}', '${alvoId}', '${crypto.randomUUID()}/${alvoId}/x.png', 'x.png', 'image/png', 10)`,
+    "anexos_caminho_da_org",
+  );
+  await deveRejeitar(
+    db,
+    "não deixa trocar o caminho de um anexo",
+    `update atendimento_anexos set caminho = '${orgId}/${alvoId}/${crypto.randomUUID()}.png' where caminho = '${caminhoOk}'`,
+    "apenas removido",
+  );
+  await db.exec(`update atendimento_anexos set removido_em = now() where caminho = '${caminhoOk}'`);
+  verificar("anexo pode ser marcado como removido", true);
+  await deveRejeitar(
+    db,
+    "não deixa restaurar um anexo removido",
+    `update atendimento_anexos set removido_em = null where caminho = '${caminhoOk}'`,
+    "não pode ser restaurado",
+  );
+
   // ── Integridade referencial ──
   await deveRejeitar(
     db,

@@ -32,6 +32,12 @@ export function formatarDuracao(minutos: number | null | undefined) {
   return `${horas}h ${resto}min`;
 }
 
+export function formatarTamanho(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
+}
+
 export function formatarMoeda(valor: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor ?? 0);
 }

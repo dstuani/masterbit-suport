@@ -17,8 +17,42 @@ import {
   mudarStatus,
   registrarInteracao,
 } from "@/lib/services/atendimentos";
+import { z } from "zod";
+
 import { atribuicaoSchema } from "@/lib/schemas/equipe";
+import { enviarAnexo, removerAnexo } from "@/lib/services/anexos";
 import { atribuirAtendimento } from "@/lib/services/equipe";
+
+export async function enviarAnexoAction(formData: FormData): Promise<EstadoFormulario> {
+  const atendimentoId = z.uuid().safeParse(formData.get("atendimento_id"));
+  const arquivo = formData.get("arquivo");
+
+  if (!atendimentoId.success) return { erro: "Atendimento inválido." };
+  if (!(arquivo instanceof File)) return { erro: "Nenhum arquivo recebido." };
+
+  try {
+    await enviarAnexo(atendimentoId.data, arquivo);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath(`/atendimentos/${atendimentoId.data}`);
+  return { erro: null };
+}
+
+export async function removerAnexoAction(formData: FormData): Promise<EstadoFormulario> {
+  const anexoId = z.uuid().safeParse(formData.get("anexo_id"));
+  if (!anexoId.success) return { erro: "Anexo inválido." };
+
+  try {
+    const { atendimentoId } = await removerAnexo(anexoId.data);
+    revalidatePath(`/atendimentos/${atendimentoId}`);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  return { erro: null };
+}
 
 export async function atribuirAtendimentoAction(
   _estado: EstadoFormulario,

@@ -78,6 +78,7 @@ async function main() {
     "pendencias",
     "agenda_eventos",
     "audit_logs",
+    "atendimento_anexos",
   ];
 
   const { rows } = await db.query(

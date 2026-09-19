@@ -115,8 +115,9 @@ catálogo inicial de 7 categorias e 28 subcategorias — tudo editável em Confi
 1. **Fundação** — scaffold, Supabase, auth, shell ← *concluída*
 2. **Schema e cadastros** — 14 tabelas, RLS, triggers, CRUD de clientes e sistemas ← *concluída*
 3. **Atendimentos** — lista, criação, timeline, conclusão ← *concluída*
-4. **Pendências**
-5. **Agenda e retornos**
-6. **Consulta e memória** — full-text, histórico unificado
-7. **Relatórios e dashboard**
-8. **Equipe** — papéis, atribuição, auditoria
+4. **Pendências** ← *concluída*
+5. **Agenda e retornos** ← *concluída*
+6. **Consulta e memória** — full-text, buscas salvas, CSV ← *concluída*
+7. **Relatórios e dashboard** ← *concluída*
+8. **Equipe** — papéis, atribuição, auditoria ← *concluída*
+9. **Anexos** — arquivos e prints nos atendimentos (Supabase Storage, bucket privado) ← *concluída*

@@ -20,9 +20,17 @@ import {
   listarPendenciasDoAtendimento,
   obterAtendimento,
 } from "@/lib/services/atendimentos";
+import { ehImagem } from "@/lib/anexos";
+import { listarAnexos } from "@/lib/services/anexos";
 import { listarResponsaveis } from "@/lib/services/equipe";
-import { formatarDataHora, formatarDuracao, formatarRelativo } from "@/lib/utils";
+import {
+  formatarDataHora,
+  formatarDuracao,
+  formatarRelativo,
+  formatarTamanho,
+} from "@/lib/utils";
 import { CaixaDeInteracao, Conclusao, TrocaDeStatus } from "./acoes";
+import { EnviarAnexos, RemoverAnexo } from "./anexos";
 import { AtribuirResponsavel } from "./atribuir";
 
 export default async function AtendimentoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,10 +41,11 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
   const atendimento = await obterAtendimento(id);
   if (!atendimento) notFound();
 
-  const [interacoes, pendencias, responsaveis] = await Promise.all([
+  const [interacoes, pendencias, responsaveis, anexos] = await Promise.all([
     listarInteracoes(id),
     listarPendenciasDoAtendimento(id),
     listarResponsaveis(),
+    listarAnexos(id),
   ]);
 
   const status = STATUS_ATENDIMENTO[atendimento.status];
@@ -186,6 +195,64 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
                 <Linha rotulo="Responsável" valor={atendimento.profiles?.nome} />
               )}
               <Linha rotulo="Aberto em" valor={formatarDataHora(atendimento.iniciado_em)} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Anexos
+                {anexos.length > 0 ? (
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                    ({anexos.length})
+                  </span>
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm">
+              {anexos.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {anexos.map((anexo) => (
+                    <li key={anexo.id} className="flex items-center gap-2.5">
+                      {anexo.url && ehImagem(anexo.tipo_mime) ? (
+                        <a href={anexo.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                          {/* URL assinada externa: next/image exigiria configurar o domínio do Storage. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={anexo.url}
+                            alt={anexo.nome_original}
+                            className="size-12 rounded-app border border-border object-cover"
+                          />
+                        </a>
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        {anexo.url ? (
+                          <a
+                            href={anexo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block truncate font-medium text-primary hover:underline"
+                          >
+                            {anexo.nome_original}
+                          </a>
+                        ) : (
+                          <span className="block truncate font-medium">{anexo.nome_original}</span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatarTamanho(anexo.tamanho_bytes)}
+                          {anexo.profiles?.nome ? ` · ${anexo.profiles.nome}` : ""}
+                          {" · "}
+                          {formatarRelativo(anexo.created_at)}
+                        </span>
+                      </div>
+                      <RemoverAnexo anexoId={anexo.id} nome={anexo.nome_original} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">Nenhum anexo.</p>
+              )}
+              <EnviarAnexos atendimentoId={id} />
             </CardContent>
           </Card>
 
