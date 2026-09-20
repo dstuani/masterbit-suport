@@ -2,6 +2,7 @@ import {
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
+  Lightbulb,
   ListChecks,
   Search,
   Settings,
@@ -34,6 +35,7 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
     secao: "Análise",
     itens: [
       { titulo: "Consultas", href: "/consultas", icone: Search },
+      { titulo: "Casos parecidos", href: "/casos-parecidos", icone: Lightbulb },
       { titulo: "Relatórios", href: "/relatorios", icone: BarChart3 },
     ],
   },

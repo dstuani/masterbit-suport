@@ -31,9 +31,11 @@ const CONTEXTO_VAZIO: ContextoCliente = { filiais: [], contatos: [], sistemas: [
 export function FormularioAtendimento({
   opcoes,
   clienteInicial,
+  tituloInicial,
 }: {
   opcoes: Opcoes;
   clienteInicial?: string;
+  tituloInicial?: string;
 }) {
   const [estado, acao, pendente] = useActionState(criarAtendimentoAction, estadoInicial);
   const [clienteId, setClienteId] = useState(clienteInicial ?? "");
@@ -115,6 +117,7 @@ export function FormularioAtendimento({
               name="titulo"
               required
               autoFocus
+              defaultValue={tituloInicial}
               placeholder="Ex.: NF-e rejeitada com erro 539"
             />
             <Mensagem texto={erroDe("titulo")} />

@@ -10,9 +10,9 @@ export const metadata = { title: "Novo atendimento" };
 export default async function NovoAtendimentoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cliente?: string }>;
+  searchParams: Promise<{ cliente?: string; titulo?: string }>;
 }) {
-  const { cliente } = await searchParams;
+  const { cliente, titulo } = await searchParams;
 
   if (!supabaseConfigurado) {
     return (
@@ -45,7 +45,11 @@ export default async function NovoAtendimentoPage({
         titulo="Novo atendimento"
         descricao="Cliente e assunto bastam; o resto pode ser completado durante o atendimento."
       />
-      <FormularioAtendimento opcoes={opcoes} clienteInicial={cliente} />
+      <FormularioAtendimento
+        opcoes={opcoes}
+        clienteInicial={cliente}
+        tituloInicial={titulo?.slice(0, 300)}
+      />
     </>
   );
 }

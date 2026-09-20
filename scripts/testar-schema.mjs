@@ -253,6 +253,28 @@ async function main() {
   );
   verificar("busca full-text indexa a solução gravada", buscaSolucao.length === 1);
 
+  // ── Casos parecidos ──
+  const { rows: parecidos } = await db.query(
+    `select numero, solucao, cliente_nome, relevancia from buscar_atendimentos_parecidos($1, $2, 5)`,
+    ["rejeitada or numeração or 539", clienteId],
+  );
+  verificar(
+    "casos parecidos acha o resolvido pelo relato e devolve a solução",
+    parecidos.length === 1 && parecidos[0].solucao.includes("Reemitida") && parecidos[0].relevancia > 0,
+    JSON.stringify(parecidos),
+  );
+
+  const { rows: semParecido } = await db.query(
+    `select numero from buscar_atendimentos_parecidos($1, null, 5)`,
+    ["impressora or toner"],
+  );
+  verificar("casos parecidos não devolve o que não tem relação", semParecido.length === 0);
+
+  const { rows: consultaVazia } = await db.query(
+    `select numero from buscar_atendimentos_parecidos('', null, 5)`,
+  );
+  verificar("casos parecidos com consulta vazia não devolve nada", consultaVazia.length === 0);
+
   // ── Pendências ──
   await deveRejeitar(
     db,
