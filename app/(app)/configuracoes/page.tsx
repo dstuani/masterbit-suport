@@ -11,6 +11,7 @@ import { listarAuditoria, listarEquipe, TABELAS_AUDITADAS } from "@/lib/services
 import { formatarData, formatarDataHora } from "@/lib/utils";
 import { FormularioCategoria, FormularioSistema, FormularioSubcategoria } from "./formularios";
 import { ControlesDoMembro, FormularioPerfil, FormularioSenha } from "./formularios-equipe";
+import { SeletorDeTema } from "./seletor-de-tema";
 
 export const metadata = { title: "Configurações" };
 export const dynamic = "force-dynamic";
@@ -243,6 +244,19 @@ export default async function ConfiguracoesPage({
 
       {aba === "conta" && perfil ? (
         <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Aparência</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Vale só neste navegador. No modo Automático o sistema segue o tema do seu
+                computador.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <SeletorDeTema />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Perfil</CardTitle>

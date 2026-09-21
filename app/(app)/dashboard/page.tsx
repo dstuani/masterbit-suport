@@ -39,7 +39,6 @@ export default async function DashboardPage() {
   }
 
   const resumo = await obterResumo();
-  const emAberto = resumo.abertos + resumo.emAndamento + resumo.aguardando;
 
   return (
     <>
@@ -84,7 +83,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {emAberto === 0 && resumo.recentes.length === 0 ? (
+      {resumo.totalDeAtendimentos === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
             <ClipboardList className="size-8 text-muted-foreground" />
@@ -123,10 +122,10 @@ export default async function DashboardPage() {
 
           <BlocoDeAtendimentos
             titulo="Últimos atendimentos"
-            descricao="O que foi movimentado por último."
+            descricao="O que está pendente, do movimentado por último."
             icone={ClipboardList}
             itens={resumo.recentes}
-            vazio="Nenhum atendimento registrado."
+            vazio="Nada pendente. Todos os atendimentos estão resolvidos ou cancelados."
             className="lg:col-span-2"
           />
         </div>

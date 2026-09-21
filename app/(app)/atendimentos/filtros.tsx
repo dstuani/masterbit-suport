@@ -43,6 +43,10 @@ export function FiltrosAtendimentos({
 
   function aplicar(campo: string, valor: string) {
     const params = new URLSearchParams(searchParams.toString());
+    // URL vazia = lista aberta pelo menu, que já está filtrada por "Em aberto".
+    // Ao mexer em outro filtro, o status precisa ficar explícito na URL; sem isso
+    // ele sumiria e a lista passaria a mostrar tudo.
+    if (searchParams.size === 0 && campo !== "status") params.set("status", "abertos");
     if (valor) {
       params.set(campo, valor);
     } else {
@@ -57,7 +61,10 @@ export function FiltrosAtendimentos({
     });
   }
 
-  const temFiltro = Object.values(valores).some(Boolean);
+  // "Em aberto" é o padrão da lista, não um filtro que o usuário precise limpar.
+  const temFiltro = Object.entries(valores).some(
+    ([campo, valor]) => valor && !(campo === "status" && valor === "abertos"),
+  );
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2" data-pendente={pendente}>
@@ -81,7 +88,7 @@ export function FiltrosAtendimentos({
         aria-label="Filtrar por status"
         onChange={(e) => aplicar("status", e.target.value)}
       >
-        <option value="">Todos os status</option>
+        <option value="todos">Todos os status</option>
         <option value="abertos">Em aberto</option>
         <option value="aguardando">Aguardando (cliente ou terceiro)</option>
         {Object.entries(STATUS_ATENDIMENTO).map(([chave, info]) => (

@@ -17,6 +17,8 @@ export type ResumoDashboard = {
   parados: LinhaLista[];
   aguardandoRetorno: LinhaLista[];
   recentes: LinhaLista[];
+  /** Todos os atendimentos, de qualquer status: distingue "sistema vazio" de "nada pendente". */
+  totalDeAtendimentos: number;
 };
 
 /**
@@ -44,6 +46,7 @@ export async function obterResumo(): Promise<ResumoDashboard> {
     parados,
     aguardandoRetorno,
     recentes,
+    totalDeAtendimentos,
   ] = await Promise.all([
     supabase.from("atendimentos").select("id", { count: "exact", head: true }).eq("status", "aberto"),
 
@@ -92,11 +95,15 @@ export async function obterResumo(): Promise<ResumoDashboard> {
       .order("updated_at", { ascending: true })
       .limit(8),
 
+    // Só o que ainda está pendente: resolvidos e cancelados saem desta lista.
     supabase
       .from("atendimentos_lista")
       .select("*")
+      .in("status", STATUS_EM_ABERTO)
       .order("updated_at", { ascending: false })
       .limit(8),
+
+    supabase.from("atendimentos").select("id", { count: "exact", head: true }),
   ]);
 
   const minutosNoMes = (tempoDoMes.data ?? []).reduce(
@@ -114,5 +121,6 @@ export async function obterResumo(): Promise<ResumoDashboard> {
     parados: parados.data ?? [],
     aguardandoRetorno: aguardandoRetorno.data ?? [],
     recentes: recentes.data ?? [],
+    totalDeAtendimentos: totalDeAtendimentos.count ?? 0,
   };
 }

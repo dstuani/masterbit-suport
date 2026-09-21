@@ -42,10 +42,17 @@ export default async function AtendimentosPage({
 
   const pagina = Number.parseInt(params.pagina ?? "1", 10) || 1;
 
+  // Abrir a lista pelo menu (URL sem parâmetro nenhum) mostra só o que está em
+  // aberto. "todos" é o valor explícito de quem quer ver tudo; links que já trazem
+  // filtros (ex.: histórico de um cliente) não recebem o padrão.
+  const abriuPeloMenu = Object.keys(params).length === 0;
+  const statusEfetivo = abriuPeloMenu ? "abertos" : (params.status ?? "");
+  const paramsEfetivos = abriuPeloMenu ? { status: "abertos" } : params;
+
   const [{ itens, total, paginas }, opcoes, responsaveis] = await Promise.all([
     listarAtendimentos({
       busca: params.busca,
-      status: params.status as never,
+      status: (statusEfetivo === "todos" ? undefined : statusEfetivo || undefined) as never,
       prioridade: params.prioridade,
       clienteId: params.cliente,
       categoriaId: params.categoria,
@@ -56,9 +63,17 @@ export default async function AtendimentosPage({
     listarResponsaveis(),
   ]);
 
+  const soEmAberto =
+    statusEfetivo === "abertos" &&
+    !params.busca &&
+    !params.prioridade &&
+    !params.cliente &&
+    !params.categoria &&
+    !params.responsavel;
+
   const temFiltro = Boolean(
     params.busca ||
-      params.status ||
+      (statusEfetivo && statusEfetivo !== "todos") ||
       params.prioridade ||
       params.cliente ||
       params.categoria ||
@@ -76,7 +91,7 @@ export default async function AtendimentosPage({
       <FiltrosAtendimentos
         valores={{
           busca: params.busca ?? "",
-          status: params.status ?? "",
+          status: statusEfetivo,
           prioridade: params.prioridade ?? "",
           cliente: params.cliente ?? "",
           categoria: params.categoria ?? "",
@@ -93,12 +108,25 @@ export default async function AtendimentosPage({
             <ClipboardList className="size-8 text-muted-foreground" />
             <div>
               <p className="text-sm font-medium">
-                {temFiltro ? "Nenhum atendimento encontrado" : "Nenhum atendimento registrado"}
+                {soEmAberto
+                  ? "Nenhum atendimento em aberto"
+                  : temFiltro
+                    ? "Nenhum atendimento encontrado"
+                    : "Nenhum atendimento registrado"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {temFiltro
-                  ? "Ajuste os filtros para ampliar a busca."
-                  : "Registre o primeiro atendimento para começar a construir o histórico."}
+                {soEmAberto ? (
+                  <>
+                    Tudo em dia.{" "}
+                    <Link href="/atendimentos?status=todos" className="text-primary hover:underline">
+                      Ver todos os atendimentos
+                    </Link>
+                  </>
+                ) : temFiltro ? (
+                  "Ajuste os filtros para ampliar a busca."
+                ) : (
+                  "Registre o primeiro atendimento para começar a construir o histórico."
+                )}
               </p>
             </div>
             {!temFiltro ? acoes : null}
@@ -180,10 +208,10 @@ export default async function AtendimentosPage({
 
           {paginas > 1 ? (
             <div className="flex gap-2">
-              <PaginaLink params={params} pagina={pagina - 1} desabilitado={pagina <= 1}>
+              <PaginaLink params={paramsEfetivos} pagina={pagina - 1} desabilitado={pagina <= 1}>
                 Anterior
               </PaginaLink>
-              <PaginaLink params={params} pagina={pagina + 1} desabilitado={pagina >= paginas}>
+              <PaginaLink params={paramsEfetivos} pagina={pagina + 1} desabilitado={pagina >= paginas}>
                 Próxima
               </PaginaLink>
             </div>

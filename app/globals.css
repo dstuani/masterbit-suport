@@ -15,43 +15,54 @@
   }
 }
 
+/*
+ * Paleta da marca Masterbit: laranja #F47B36 (letras) e vermelho #CD242B (o "b").
+ *
+ * No tema claro o laranja escurece para #C4561B: o laranja puro sobre branco dá
+ * contraste de só 2,7:1 e não serve para texto e links; este passa de 4,5:1.
+ * No tema escuro vale o laranja exato da logo, com texto escuro nos botões.
+ * Neutros quentes (família "stone") para não brigar com o laranja.
+ */
 :root {
-  --background: #f7f8fa;
+  --background: #faf8f6;
   --surface: #ffffff;
-  --surface-muted: #f1f3f6;
-  --foreground: #101828;
-  --muted-foreground: #667085;
-  --border: #e4e7ec;
-  --primary: #1f6feb;
+  --surface-muted: #f4f0ec;
+  --foreground: #1c1917;
+  --muted-foreground: #78716c;
+  --border: #e8e2dc;
+  --primary: #c4561b;
   --primary-foreground: #ffffff;
-  --ring: #1f6feb;
+  --ring: #f47b36;
   --radius: 0.625rem;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #0b0d12;
-    --surface: #12151c;
-    --surface-muted: #191d26;
-    --foreground: #e8ecf3;
-    --muted-foreground: #98a2b3;
-    --border: #232833;
-    --primary: #4d90f0;
-    --primary-foreground: #0b0d12;
-    --ring: #4d90f0;
+    --background: #0f0d0c;
+    --surface: #171412;
+    --surface-muted: #1f1b18;
+    --foreground: #f3efeb;
+    --muted-foreground: #a8a29e;
+    --border: #2b2622;
+    --primary: #f47b36;
+    --primary-foreground: #1a0d04;
+    --ring: #f47b36;
+    color-scheme: dark;
   }
 }
 
 .dark {
-  --background: #0b0d12;
-  --surface: #12151c;
-  --surface-muted: #191d26;
-  --foreground: #e8ecf3;
-  --muted-foreground: #98a2b3;
-  --border: #232833;
-  --primary: #4d90f0;
-  --primary-foreground: #0b0d12;
-  --ring: #4d90f0;
+  --background: #0f0d0c;
+  --surface: #171412;
+  --surface-muted: #1f1b18;
+  --foreground: #f3efeb;
+  --muted-foreground: #a8a29e;
+  --border: #2b2622;
+  --primary: #f47b36;
+  --primary-foreground: #1a0d04;
+  --ring: #f47b36;
+  color-scheme: dark;
 }
 
 @theme inline {
