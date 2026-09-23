@@ -72,7 +72,7 @@ export function FiltrosAtendimentos({
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           defaultValue={valores.busca}
-          placeholder="Buscar por número, assunto ou cliente…"
+          placeholder="Buscar por número, assunto, cliente ou histórico…"
           className="pl-8"
           onChange={(e) => {
             const valor = e.target.value;

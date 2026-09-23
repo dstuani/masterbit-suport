@@ -10,8 +10,10 @@ import {
   conclusaoSchema,
   interacaoSchema,
   mudancaStatusSchema,
+  tituloSchema,
 } from "@/lib/schemas/atendimentos";
 import {
+  atualizarAtendimento,
   concluirAtendimento,
   criarAtendimento,
   mudarStatus,
@@ -89,6 +91,21 @@ export async function criarAtendimentoAction(
 
   revalidatePath("/atendimentos");
   redirect(destino);
+}
+
+export async function atualizarTituloAction(formData: FormData): Promise<EstadoFormulario> {
+  const analise = tituloSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return erroDeValidacao(analise.error.issues);
+
+  try {
+    await atualizarAtendimento(analise.data.atendimento_id, { titulo: analise.data.titulo });
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath(`/atendimentos/${analise.data.atendimento_id}`);
+  revalidatePath("/atendimentos");
+  return { erro: null };
 }
 
 export async function registrarInteracaoAction(

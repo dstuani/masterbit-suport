@@ -143,11 +143,33 @@ export async function listarContatos(clienteId: string) {
     .from("cliente_contatos")
     .select("*, filiais(nome)")
     .eq("cliente_id", clienteId)
+    .order("ativo", { ascending: false })
     .order("principal", { ascending: false })
     .order("nome");
 
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Contato não é apagado: excluir preserva o vínculo com atendimentos antigos. */
+export async function inativarContato(id: string) {
+  await exigirPermissaoDeEscrita();
+  const supabase = await criarClienteServidor();
+
+  const { error } = await supabase
+    .from("cliente_contatos")
+    .update({ ativo: false, principal: false })
+    .eq("id", id);
+
+  if (error) throw new Error(traduzirErro(error.message));
+}
+
+export async function reativarContato(id: string) {
+  await exigirPermissaoDeEscrita();
+  const supabase = await criarClienteServidor();
+
+  const { error } = await supabase.from("cliente_contatos").update({ ativo: true }).eq("id", id);
+  if (error) throw new Error(traduzirErro(error.message));
 }
 
 export async function salvarContato(dados: DadosContato, id?: string) {

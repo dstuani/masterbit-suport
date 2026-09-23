@@ -15,6 +15,8 @@ import {
   atualizarCliente,
   criarCliente,
   inativarCliente,
+  inativarContato,
+  reativarContato,
   removerSistemaDoCliente,
   salvarContato,
   salvarFilial,
@@ -55,6 +57,7 @@ export async function inativarClienteAction(formData: FormData) {
   await inativarCliente(id);
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
+  redirect("/clientes");
 }
 
 // ─── Filial ──────────────────────────────────────────────────────────────────
@@ -97,6 +100,24 @@ export async function salvarContatoAction(
 
   revalidatePath(`/clientes/${analise.data.cliente_id}`);
   return { erro: null };
+}
+
+export async function inativarContatoAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const clienteId = String(formData.get("cliente_id") ?? "");
+  if (!id) return;
+
+  await inativarContato(id);
+  if (clienteId) revalidatePath(`/clientes/${clienteId}`);
+}
+
+export async function reativarContatoAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const clienteId = String(formData.get("cliente_id") ?? "");
+  if (!id) return;
+
+  await reativarContato(id);
+  if (clienteId) revalidatePath(`/clientes/${clienteId}`);
 }
 
 // ─── Sistema instalado ───────────────────────────────────────────────────────

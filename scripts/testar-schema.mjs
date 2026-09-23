@@ -324,6 +324,69 @@ async function main() {
     !auditoria.some((a) => a.tabela === "atendimento_interacoes"),
   );
 
+  // ── Consultoria: tópicos, comentários e anexos ──
+  const { rows: proj } = await db.query(
+    `insert into consultoria_projetos (org_id, nome) values ('${orgId}', 'Consultoria Teste') returning id`,
+  );
+  const projetoId = proj[0].id;
+
+  const { rows: top } = await db.query(
+    `insert into consultoria_topicos (org_id, projeto_id, codigo, titulo, descricao)
+     values ('${orgId}', '${projetoId}', '1.1', 'Tópico de teste', 'Descrição')
+     returning id`,
+  );
+  const topicoId = top[0].id;
+
+  await db.exec(
+    `insert into consultoria_comentarios (org_id, topico_id, autor_id, conteudo)
+     values ('${orgId}', '${topicoId}', '${userId}', 'Primeiro comentário')`,
+  );
+  verificar("comentário de consultoria é aceito", true);
+
+  await db.exec(`update consultoria_topicos set status = 'em_andamento' where id = '${topicoId}'`);
+  const { rows: auditoriaTopico } = await db.query(
+    `select campos_alterados from audit_logs where tabela = 'consultoria_topicos' and acao = 'UPDATE'`,
+  );
+  verificar(
+    "auditoria registra mudança de status do tópico de consultoria",
+    auditoriaTopico.some((a) => a.campos_alterados?.includes("status")),
+  );
+
+  const caminhoAnexoConsultoria = `${orgId}/consultoria/${topicoId}/${crypto.randomUUID()}.png`;
+  await db.exec(
+    `insert into consultoria_anexos (org_id, topico_id, caminho, nome_original, tipo_mime, tamanho_bytes, enviado_por)
+     values ('${orgId}', '${topicoId}', '${caminhoAnexoConsultoria}', 'evidencia.png', 'image/png', 2048, '${userId}')`,
+  );
+  verificar("anexo de consultoria válido é aceito", true);
+
+  await deveRejeitar(
+    db,
+    "recusa anexo de consultoria com caminho fora da organização",
+    `insert into consultoria_anexos (org_id, topico_id, caminho, nome_original, tipo_mime, tamanho_bytes)
+     values ('${orgId}', '${topicoId}', '${crypto.randomUUID()}/consultoria/${topicoId}/x.png', 'x.png', 'image/png', 10)`,
+    "consultoria_anexos_caminho_da_org",
+  );
+
+  await deveRejeitar(
+    db,
+    "não deixa trocar o caminho de um anexo de consultoria",
+    `update consultoria_anexos set caminho = '${orgId}/consultoria/${topicoId}/${crypto.randomUUID()}.png'
+      where caminho = '${caminhoAnexoConsultoria}'`,
+    "apenas removido",
+  );
+
+  await db.exec(
+    `update consultoria_anexos set removido_em = now() where caminho = '${caminhoAnexoConsultoria}'`,
+  );
+  verificar("anexo de consultoria pode ser marcado como removido", true);
+
+  await deveRejeitar(
+    db,
+    "não deixa restaurar um anexo de consultoria removido",
+    `update consultoria_anexos set removido_em = null where caminho = '${caminhoAnexoConsultoria}'`,
+    "não pode ser restaurado",
+  );
+
   // ── Equipe: papel e situação protegidos por trigger ──
   const tecnicoId = segundo[0].id;
   await db.exec(`update auth.sessao_teste set usuario = '${tecnicoId}'`);

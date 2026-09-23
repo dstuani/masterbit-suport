@@ -21,6 +21,8 @@ export type FiltrosPendencias = {
   prioridade?: string;
   clienteId?: string;
   atendimentoId?: string;
+  /** Corta o resultado — usado no card do dashboard, que só mostra os primeiros. */
+  limite?: number;
 };
 
 export async function listarPendencias(filtros: FiltrosPendencias = {}): Promise<PendenciaComContexto[]> {
@@ -46,6 +48,7 @@ export async function listarPendencias(filtros: FiltrosPendencias = {}): Promise
   if (filtros.prioridade) query = query.eq("prioridade", filtros.prioridade as "baixa" | "media" | "alta" | "urgente");
   if (filtros.clienteId) query = query.eq("cliente_id", filtros.clienteId);
   if (filtros.atendimentoId) query = query.eq("atendimento_id", filtros.atendimentoId);
+  if (filtros.limite) query = query.limit(filtros.limite);
 
   const { data, error } = await query;
   if (error) throw new Error(traduzirErro(error.message));

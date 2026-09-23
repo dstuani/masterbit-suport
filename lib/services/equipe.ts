@@ -1,11 +1,15 @@
+import { randomBytes } from "node:crypto";
+
 import { exigirPerfil, exigirPermissaoDeEscrita, type Perfil } from "@/lib/auth";
 import type {
   DadosAtribuicao,
+  DadosCriarUsuario,
   DadosPapel,
   DadosPerfil,
   DadosSituacao,
 } from "@/lib/schemas/equipe";
 import { traduzirErro } from "@/lib/services/erros";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Database } from "@/lib/types/database";
 
@@ -27,6 +31,7 @@ export const TABELAS_AUDITADAS: Record<string, string> = {
   pendencias: "Pendências",
   profiles: "Usuários",
   clientes_sistemas: "Sistemas do cliente",
+  consultoria_topicos: "Tópicos de consultoria",
 };
 
 async function exigirOwner(): Promise<Perfil> {
@@ -45,6 +50,63 @@ export async function listarEquipe(): Promise<MembroEquipe[]> {
 
   if (error) throw new Error(traduzirErro(error.message));
   return data ?? [];
+}
+
+// Sem caracteres ambíguos (0/O, 1/l/I): a senha é lida em voz alta ou digitada por
+// outra pessoa ao repassar, e um erro de leitura não pode virar um acesso travado.
+const ALFABETO_DA_SENHA = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+function gerarSenhaTemporaria(tamanho = 12): string {
+  const bytes = randomBytes(tamanho);
+  return Array.from(bytes, (byte) => ALFABETO_DA_SENHA[byte % ALFABETO_DA_SENHA.length]).join("");
+}
+
+export type UsuarioCriado = { id: string; senhaTemporaria: string };
+
+/**
+ * Cria o usuário direto pelo sistema, sem passar pelo painel do Supabase.
+ *
+ * Usa a service role key (via criarClienteAdmin) só para o insert em auth.users —
+ * é o único jeito de criar login sem a pessoa se autocadastrar. O profile nasce
+ * pelo trigger de cadastro (tratar_novo_usuario), sempre como técnico; se o papel
+ * pedido for outro, ajusta logo em seguida com a sessão normal do owner, para o
+ * RLS e o trigger de proteção de papel continuarem valendo nessa parte.
+ *
+ * A senha é temporária de propósito: não há como enviar e-mail sem configurar um
+ * servidor de e-mail (SMTP) no Supabase, então o owner repassa por fora e a pessoa
+ * troca no primeiro acesso, em Configurações → Conta.
+ */
+export async function criarUsuario(dados: DadosCriarUsuario): Promise<UsuarioCriado> {
+  await exigirOwner();
+
+  const admin = criarClienteAdmin();
+  const senhaTemporaria = gerarSenhaTemporaria();
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email: dados.email,
+    password: senhaTemporaria,
+    email_confirm: true,
+    user_metadata: { nome: dados.nome },
+  });
+
+  if (error) {
+    if (error.message.toLowerCase().includes("already")) {
+      throw new Error("Já existe um usuário com este e-mail.");
+    }
+    throw new Error(error.message);
+  }
+
+  if (dados.role !== "tecnico") {
+    const supabase = await criarClienteServidor();
+    const { error: erroPapel } = await supabase
+      .from("profiles")
+      .update({ role: dados.role })
+      .eq("id", data.user.id);
+
+    if (erroPapel) throw new Error(traduzirErro(erroPapel.message));
+  }
+
+  return { id: data.user.id, senhaTemporaria };
 }
 
 /** Usuários ativos que podem receber atendimentos (papel de escrita). */

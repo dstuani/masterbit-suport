@@ -37,6 +37,37 @@ export async function listarAtendimentos(filtros: FiltrosAtendimentos = {}) {
   const supabase = await criarClienteServidor();
   const pagina = Math.max(1, filtros.pagina ?? 1);
   const inicio = (pagina - 1) * POR_PAGINA;
+  const termo = filtros.busca?.trim() ?? "";
+
+  // A view atendimentos_lista não traz descrição, solução nem o histórico — só
+  // título e números. Para a busca alcançar isso, primeiro levanta os IDs que
+  // batem no full-text da tabela base (título + descrição + solução) e no texto
+  // das interações da timeline (onde entram números de requisito, protocolo etc.
+  // que não aparecem em campo nenhum do atendimento), e depois junta os dois
+  // conjuntos ao ilike de título/número/cliente na consulta da view.
+  // Termos curtos (< 3 letras) ficam só no ilike: websearch_to_tsquery os rejeita.
+  let idsDoConteudo: string[] = [];
+  if (termo.length >= 3) {
+    const [conteudo, historico] = await Promise.all([
+      supabase
+        .from("atendimentos")
+        .select("id")
+        .textSearch("busca", termo, { config: "portuguese", type: "websearch" }),
+      supabase
+        .from("atendimento_interacoes")
+        .select("atendimento_id")
+        .ilike("conteudo", `%${termo}%`),
+    ]);
+    if (conteudo.error) throw new Error(conteudo.error.message);
+    if (historico.error) throw new Error(historico.error.message);
+
+    idsDoConteudo = [
+      ...new Set([
+        ...conteudo.data.map((r) => r.id),
+        ...historico.data.map((r) => r.atendimento_id),
+      ]),
+    ];
+  }
 
   let query = supabase
     .from("atendimentos_lista")
@@ -61,10 +92,13 @@ export async function listarAtendimentos(filtros: FiltrosAtendimentos = {}) {
   if (filtros.categoriaId) query = query.eq("categoria_id", filtros.categoriaId);
   if (filtros.responsavelId) query = query.eq("responsavel_id", filtros.responsavelId);
 
-  if (filtros.busca && filtros.busca.trim().length > 0) {
-    const termo = filtros.busca.trim();
+  if (termo.length > 0) {
     const like = `%${termo}%`;
-    query = query.or(`titulo.ilike.${like},numero.ilike.${like},cliente_nome.ilike.${like}`);
+    const condicoes = [`titulo.ilike.${like}`, `numero.ilike.${like}`, `cliente_nome.ilike.${like}`];
+    if (idsDoConteudo.length > 0) {
+      condicoes.push(`id.in.(${idsDoConteudo.join(",")})`);
+    }
+    query = query.or(condicoes.join(","));
   }
 
   const { data, error, count } = await query;

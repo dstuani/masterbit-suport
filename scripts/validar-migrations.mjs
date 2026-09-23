@@ -79,6 +79,10 @@ async function main() {
     "agenda_eventos",
     "audit_logs",
     "atendimento_anexos",
+    "consultoria_projetos",
+    "consultoria_topicos",
+    "consultoria_comentarios",
+    "consultoria_anexos",
   ];
 
   const { rows } = await db.query(

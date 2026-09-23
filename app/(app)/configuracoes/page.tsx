@@ -5,12 +5,17 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { obterPerfil } from "@/lib/auth";
-import { supabaseConfigurado } from "@/lib/env";
+import { serviceRoleConfigurado, supabaseConfigurado } from "@/lib/env";
 import { listarCategorias, listarSistemas } from "@/lib/services/catalogo";
 import { listarAuditoria, listarEquipe, TABELAS_AUDITADAS } from "@/lib/services/equipe";
 import { formatarData, formatarDataHora } from "@/lib/utils";
 import { FormularioCategoria, FormularioSistema, FormularioSubcategoria } from "./formularios";
-import { ControlesDoMembro, FormularioPerfil, FormularioSenha } from "./formularios-equipe";
+import {
+  ControlesDoMembro,
+  FormularioNovoUsuario,
+  FormularioPerfil,
+  FormularioSenha,
+} from "./formularios-equipe";
 import { SeletorDeTema } from "./seletor-de-tema";
 
 export const metadata = { title: "Configurações" };
@@ -324,9 +329,37 @@ export default async function ConfiguracoesPage({
             </div>
           </Card>
 
+          {serviceRoleConfigurado ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Novo usuário</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Entra com uma senha temporária — sem e-mail configurado no projeto, é você quem
+                  repassa o acesso.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <FormularioNovoUsuario />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-amber-300 dark:border-amber-800">
+              <CardContent className="p-5 text-sm">
+                <p className="font-medium">Criar usuário pelo sistema ainda não está disponível.</p>
+                <p className="mt-1 text-muted-foreground">
+                  Falta configurar a <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> no
+                  servidor (painel do Supabase → Project Settings → API → service_role, colada em
+                  <code className="font-mono"> .env.local</code>). Até lá, crie o usuário em
+                  Authentication → Users no painel do Supabase — ele já entra automaticamente como
+                  Técnico.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <p className="text-xs text-muted-foreground">
-            Novos usuários entram pelo cadastro e chegam como Técnico. Owner gerencia papéis;
-            Visualizador só consulta. A organização sempre mantém ao menos um owner ativo.
+            Owner gerencia papéis; Visualizador só consulta. A organização sempre mantém ao menos
+            um owner ativo.
           </p>
         </div>
       ) : null}

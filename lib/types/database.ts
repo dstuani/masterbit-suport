@@ -778,6 +778,215 @@ export type Database = {
           },
         ];
       };
+      consultoria_anexos: {
+        Row: {
+          id: string;
+          org_id: string;
+          topico_id: string;
+          caminho: string;
+          nome_original: string;
+          tipo_mime: string;
+          tamanho_bytes: number;
+          enviado_por: string | null;
+          removido_em: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          topico_id: string;
+          caminho: string;
+          nome_original: string;
+          tipo_mime: string;
+          tamanho_bytes: number;
+          enviado_por?: string | null;
+          removido_em?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          topico_id?: string;
+          caminho?: string;
+          nome_original?: string;
+          tipo_mime?: string;
+          tamanho_bytes?: number;
+          enviado_por?: string | null;
+          removido_em?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "consultoria_anexos_enviado_por_fkey";
+            columns: ["enviado_por"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_anexos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_anexos_topico_id_fkey";
+            columns: ["topico_id"];
+            isOneToOne: false;
+            referencedRelation: "consultoria_topicos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      consultoria_comentarios: {
+        Row: {
+          id: string;
+          org_id: string;
+          topico_id: string;
+          autor_id: string | null;
+          conteudo: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          topico_id: string;
+          autor_id?: string | null;
+          conteudo: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          topico_id?: string;
+          autor_id?: string | null;
+          conteudo?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "consultoria_comentarios_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_comentarios_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_comentarios_topico_id_fkey";
+            columns: ["topico_id"];
+            isOneToOne: false;
+            referencedRelation: "consultoria_topicos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      consultoria_projetos: {
+        Row: {
+          id: string;
+          org_id: string;
+          cliente_id: string | null;
+          nome: string;
+          ativo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          cliente_id?: string | null;
+          nome: string;
+          ativo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          cliente_id?: string | null;
+          nome?: string;
+          ativo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "consultoria_projetos_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_projetos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      consultoria_topicos: {
+        Row: {
+          id: string;
+          org_id: string;
+          projeto_id: string;
+          codigo: string | null;
+          titulo: string;
+          descricao: string | null;
+          status: "pendente" | "em_andamento" | "concluido" | "cancelado";
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          projeto_id: string;
+          codigo?: string | null;
+          titulo: string;
+          descricao?: string | null;
+          status?: "pendente" | "em_andamento" | "concluido" | "cancelado";
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          projeto_id?: string;
+          codigo?: string | null;
+          titulo?: string;
+          descricao?: string | null;
+          status?: "pendente" | "em_andamento" | "concluido" | "cancelado";
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "consultoria_topicos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consultoria_topicos_projeto_id_fkey";
+            columns: ["projeto_id"];
+            isOneToOne: false;
+            referencedRelation: "consultoria_projetos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       filiais: {
         Row: {
           id: string;
@@ -1179,6 +1388,7 @@ export type Database = {
       status_cliente: "ativo" | "inativo" | "prospect";
       status_evento: "agendado" | "confirmado" | "realizado" | "cancelado" | "remarcado";
       status_pendencia: "aberta" | "em_andamento" | "concluida" | "cancelada";
+      status_topico_consultoria: "pendente" | "em_andamento" | "concluido" | "cancelado";
       tipo_atendimento: "duvida" | "erro" | "treinamento" | "implantacao" | "melhoria" | "manutencao" | "consultoria";
       tipo_contrato: "avulso" | "mensal" | "pacote_horas";
       tipo_evento: "retorno" | "visita" | "reuniao" | "tarefa" | "lembrete" | "manutencao_preventiva";

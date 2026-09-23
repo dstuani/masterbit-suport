@@ -1,19 +1,20 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   salvarContatoAction,
   salvarFilialAction,
   salvarSistemaDoClienteAction,
 } from "../actions";
-import { estadoInicial } from "@/lib/forms";
+import { estadoInicial, type EstadoFormulario } from "@/lib/forms";
 import { Button } from "@/components/ui/button";
 import { Campo, CampoCheckbox } from "@/components/ui/campo";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { Filial } from "@/lib/services/clientes";
+import type { Contato, Filial } from "@/lib/services/clientes";
 import type { Sistema } from "@/lib/services/catalogo";
 
 function Erro({ texto }: { texto?: string | null }) {
@@ -93,30 +94,54 @@ export function FormularioFilial({ clienteId }: { clienteId: string }) {
   );
 }
 
+/**
+ * Formulário de contato, usado tanto para adicionar quanto para editar.
+ *
+ * Sem `contato`: formulário de inclusão, sempre visível abaixo da lista. Com
+ * `contato`: prefilled para edição — quem chama controla o modo trocando a `key`,
+ * o que remonta o formulário e evita misturar estado entre um contato e outro.
+ */
 export function FormularioContato({
   clienteId,
   filiais,
+  contato,
+  aoCancelar,
+  aoSalvarComSucesso,
 }: {
   clienteId: string;
   filiais: Filial[];
+  contato?: Contato;
+  aoCancelar?: () => void;
+  aoSalvarComSucesso?: () => void;
 }) {
-  const [estado, acao, pendente] = useActionState(
-    salvarContatoAction,
-    estadoInicial,
-  );
+  const [estado, setEstado] = useState<EstadoFormulario>(estadoInicial);
+  const [pendente, setPendente] = useState(false);
   const form = useRef<HTMLFormElement>(null);
 
   return (
     <form
       ref={form}
       action={async (formData) => {
-        await acao(formData);
-        form.current?.reset();
+        setPendente(true);
+        const resultado = await salvarContatoAction(estadoInicial, formData);
+        setPendente(false);
+        setEstado(resultado);
+
+        if (resultado.erro) {
+          toast.error(resultado.erro);
+        } else if (contato) {
+          toast.success("Contato atualizado.");
+          aoSalvarComSucesso?.();
+        } else {
+          toast.success("Contato adicionado.");
+          form.current?.reset();
+        }
       }}
       className="grid gap-3 sm:grid-cols-4"
     >
       <input type="hidden" name="cliente_id" value={clienteId} />
-      <input type="hidden" name="ativo" value="true" />
+      <input type="hidden" name="ativo" value={contato ? String(contato.ativo) : "true"} />
+      {contato ? <input type="hidden" name="id" value={contato.id} /> : null}
 
       <Campo
         id="contato_nome"
@@ -124,33 +149,39 @@ export function FormularioContato({
         obrigatorio
         className="sm:col-span-2"
       >
-        <Input id="contato_nome" name="nome" required />
+        <Input
+          id="contato_nome"
+          name="nome"
+          defaultValue={contato?.nome ?? ""}
+          autoFocus={Boolean(contato)}
+          required
+        />
         <Erro texto={estado.campos?.nome} />
       </Campo>
 
       <Campo id="contato_cargo" rotulo="Cargo">
-        <Input id="contato_cargo" name="cargo" />
+        <Input id="contato_cargo" name="cargo" defaultValue={contato?.cargo ?? ""} />
       </Campo>
 
       <Campo id="contato_setor" rotulo="Setor">
-        <Input id="contato_setor" name="setor" />
+        <Input id="contato_setor" name="setor" defaultValue={contato?.setor ?? ""} />
       </Campo>
 
       <Campo id="contato_email" rotulo="E-mail" className="sm:col-span-2">
-        <Input id="contato_email" name="email" type="email" />
+        <Input id="contato_email" name="email" type="email" defaultValue={contato?.email ?? ""} />
         <Erro texto={estado.campos?.email} />
       </Campo>
 
       <Campo id="contato_telefone" rotulo="Telefone">
-        <Input id="contato_telefone" name="telefone" />
+        <Input id="contato_telefone" name="telefone" defaultValue={contato?.telefone ?? ""} />
       </Campo>
 
       <Campo id="contato_whatsapp" rotulo="WhatsApp">
-        <Input id="contato_whatsapp" name="whatsapp" />
+        <Input id="contato_whatsapp" name="whatsapp" defaultValue={contato?.whatsapp ?? ""} />
       </Campo>
 
       <Campo id="contato_filial" rotulo="Filial" className="sm:col-span-2">
-        <Select id="contato_filial" name="filial_id" defaultValue="">
+        <Select id="contato_filial" name="filial_id" defaultValue={contato?.filial_id ?? ""}>
           <option value="">Sem filial específica</option>
           {filiais.map((filial) => (
             <option key={filial.id} value={filial.id}>
@@ -165,10 +196,16 @@ export function FormularioContato({
           id="contato_principal"
           name="principal"
           rotulo="Contato principal"
+          defaultChecked={contato?.principal ?? false}
         />
         <Button type="submit" size="sm" disabled={pendente}>
-          {pendente ? "Salvando…" : "Adicionar contato"}
+          {pendente ? "Salvando…" : contato ? "Salvar alterações" : "Adicionar contato"}
         </Button>
+        {aoCancelar ? (
+          <Button type="button" variant="ghost" size="sm" onClick={aoCancelar} disabled={pendente}>
+            Cancelar
+          </Button>
+        ) : null}
         <Erro texto={estado.erro} />
       </div>
     </form>

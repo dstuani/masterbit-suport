@@ -18,7 +18,8 @@ import {
 } from "@/lib/services/clientes";
 import { formatarData, formatarDocumento } from "@/lib/utils";
 import { removerSistemaDoClienteAction } from "../actions";
-import { FormularioContato, FormularioFilial, FormularioSistemaDoCliente } from "./formularios";
+import { SecaoContatos } from "./contatos";
+import { FormularioFilial, FormularioSistemaDoCliente } from "./formularios";
 
 const ABAS = [
   { chave: "geral", rotulo: "Visão geral" },
@@ -128,38 +129,17 @@ export default async function ClientePage({
       ) : null}
 
       {aba === "contatos" ? (
-        <Secao
-          titulo="Contatos"
-          formulario={<FormularioContato clienteId={id} filiais={filiais} />}
-          acoes={
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-end">
             <Button asChild size="sm" variant="outline">
               <Link href={`/clientes/${id}/importar`}>
                 <Upload />
                 Importar planilha
               </Link>
             </Button>
-          }
-        >
-          {contatos.length === 0 ? (
-            <Vazio texto="Nenhum contato cadastrado." />
-          ) : (
-            <Tabela colunas={["Nome", "Cargo", "E-mail", "Telefone", ""]}>
-              {contatos.map((contato) => (
-                <tr key={contato.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-2.5 font-medium">{contato.nome}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{contato.cargo ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{contato.email ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {contato.telefone ?? contato.whatsapp ?? "—"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {contato.principal ? <Badge>Principal</Badge> : null}
-                  </td>
-                </tr>
-              ))}
-            </Tabela>
-          )}
-        </Secao>
+          </div>
+          <SecaoContatos clienteId={id} contatos={contatos} filiais={filiais} />
+        </div>
       ) : null}
 
       {aba === "sistemas" ? (

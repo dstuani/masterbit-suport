@@ -5,16 +5,19 @@ import { revalidatePath } from "next/cache";
 import { erroDeValidacao, mensagemDoErro, type EstadoFormulario } from "@/lib/forms";
 import { dadosDoFormulario } from "@/lib/schemas/cadastros";
 import {
+  criarUsuarioSchema,
   papelSchema,
   perfilSchema,
   senhaSchema,
   situacaoSchema,
+  type EstadoCriarUsuario,
 } from "@/lib/schemas/equipe";
 import {
   alterarMinhaSenha,
   alterarPapel,
   alterarSituacao,
   atualizarMeuPerfil,
+  criarUsuario,
 } from "@/lib/services/equipe";
 
 export async function atualizarPerfilAction(
@@ -48,6 +51,22 @@ export async function alterarSenhaAction(
   }
 
   return { erro: null };
+}
+
+export async function criarUsuarioAction(
+  _estado: EstadoCriarUsuario,
+  formData: FormData,
+): Promise<EstadoCriarUsuario> {
+  const analise = criarUsuarioSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return erroDeValidacao(analise.error.issues);
+
+  try {
+    const criado = await criarUsuario(analise.data);
+    revalidatePath("/configuracoes");
+    return { erro: null, senhaTemporaria: criado.senhaTemporaria, emailCriado: analise.data.email };
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
 }
 
 export async function alterarPapelAction(

@@ -134,3 +134,12 @@ export const conclusaoSchema = z.object({
 });
 
 export type DadosConclusao = z.infer<typeof conclusaoSchema>;
+
+// ─── Edição do assunto ────────────────────────────────────────────────────────
+
+export const tituloSchema = z.object({
+  atendimento_id: z.uuid(),
+  titulo: z.string().trim().min(3, "Descreva o assunto em poucas palavras"),
+});
+
+export type DadosTitulo = z.infer<typeof tituloSchema>;

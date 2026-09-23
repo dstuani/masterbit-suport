@@ -20,11 +20,15 @@ const anonKey =
 const ehPlaceholder = (valor: string) =>
   valor.length === 0 || valor.includes("SEU-PROJETO") || valor.startsWith("cole-aqui");
 
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
 export const supabaseConfigurado = !ehPlaceholder(url) && !ehPlaceholder(anonKey);
+export const serviceRoleConfigurado = !ehPlaceholder(serviceRoleKey);
 
 export const env = {
   supabaseUrl: url,
   supabaseAnonKey: anonKey,
+  serviceRoleKey,
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3100",
 } as const;
 
@@ -36,4 +40,19 @@ export function exigirSupabase() {
     );
   }
   return { url: env.supabaseUrl, anonKey: env.supabaseAnonKey };
+}
+
+/**
+ * A service role key ignora o RLS por completo — só existe para as poucas
+ * rotinas que a API pública do Supabase não cobre (hoje, criar usuário). Falhar
+ * cedo com uma mensagem clara evita um erro genérico do Supabase no meio do form.
+ */
+export function exigirServiceRole() {
+  const { url } = exigirSupabase();
+  if (!serviceRoleConfigurado) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY não configurada. Copie em Project Settings → API → service_role no painel do Supabase e cole em .env.local (veja .env.example) para criar usuários pelo sistema.",
+    );
+  }
+  return { url, serviceRoleKey: env.serviceRoleKey };
 }

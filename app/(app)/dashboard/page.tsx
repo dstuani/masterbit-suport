@@ -18,7 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_ATENDIMENTO } from "@/lib/constants";
 import { supabaseConfigurado } from "@/lib/env";
 import { DIAS_PARA_PARADO, obterResumo, type ResumoDashboard } from "@/lib/services/dashboard";
-import { formatarDuracao, formatarRelativo } from "@/lib/utils";
+import { listarPendencias, type PendenciaComContexto } from "@/lib/services/pendencias";
+import { formatarData, formatarDuracao, formatarRelativo } from "@/lib/utils";
+
+const LIMITE_DE_PENDENCIAS_NO_DASHBOARD = 6;
 
 export const metadata = { title: "Dashboard" };
 
@@ -38,7 +41,10 @@ export default async function DashboardPage() {
     );
   }
 
-  const resumo = await obterResumo();
+  const [resumo, pendencias] = await Promise.all([
+    obterResumo(),
+    listarPendencias({ status: "abertas", limite: LIMITE_DE_PENDENCIAS_NO_DASHBOARD }),
+  ]);
 
   return (
     <>
@@ -102,23 +108,27 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <BlocoDeAtendimentos
-            titulo={`Parados há mais de ${DIAS_PARA_PARADO} dias`}
-            descricao="Em aberto e sem nenhum registro recente."
-            icone={AlarmClock}
-            itens={resumo.parados}
-            vazio="Nada parado. Todos os atendimentos em aberto tiveram movimento recente."
-            destaque
-          />
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <BlocoDePendencias itens={pendencias} />
 
-          <BlocoDeAtendimentos
-            titulo="Aguardando retorno"
-            descricao="Esperando cliente ou terceiro — os mais antigos primeiro."
-            icone={PauseCircle}
-            itens={resumo.aguardandoRetorno}
-            vazio="Nada aguardando resposta de terceiros."
-          />
+            <BlocoDeAtendimentos
+              titulo={`Parados há mais de ${DIAS_PARA_PARADO} dias`}
+              descricao="Em aberto e sem nenhum registro recente."
+              icone={AlarmClock}
+              itens={resumo.parados}
+              vazio="Nada parado. Todos os atendimentos em aberto tiveram movimento recente."
+              destaque
+            />
+
+            <BlocoDeAtendimentos
+              titulo="Aguardando retorno"
+              descricao="Esperando cliente ou terceiro — os mais antigos primeiro."
+              icone={PauseCircle}
+              itens={resumo.aguardandoRetorno}
+              vazio="Nada aguardando resposta de terceiros."
+            />
+          </div>
 
           <BlocoDeAtendimentos
             titulo="Últimos atendimentos"
@@ -126,7 +136,6 @@ export default async function DashboardPage() {
             icone={ClipboardList}
             itens={resumo.recentes}
             vazio="Nada pendente. Todos os atendimentos estão resolvidos ou cancelados."
-            className="lg:col-span-2"
           />
         </div>
       )}
@@ -171,6 +180,65 @@ function Indicador({
           <Icone className="size-5 text-muted-foreground" />
         </CardContent>
       </Link>
+    </Card>
+  );
+}
+
+function BlocoDePendencias({ itens }: { itens: PendenciaComContexto[] }) {
+  const agora = new Date();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ListChecks className="size-4 text-muted-foreground" />
+          Pendências
+          {itens.length > 0 ? (
+            <span className="text-xs font-normal text-muted-foreground">({itens.length})</span>
+          ) : null}
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          O que ainda precisa de retorno, os prazos mais próximos primeiro.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {itens.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">Nenhuma pendência em aberto.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {itens.map((item) => {
+              const vencida = item.prazo ? new Date(item.prazo) < agora : false;
+              const destino = item.atendimento_id
+                ? `/atendimentos/${item.atendimento_id}`
+                : item.cliente_id
+                  ? `/clientes/${item.cliente_id}`
+                  : "/pendencias";
+
+              return (
+                <li key={item.id} className="border-b border-border py-2.5 last:border-0 last:pb-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <Link href={destino} className="text-sm font-medium text-primary hover:underline">
+                      {item.titulo}
+                    </Link>
+                    {vencida ? (
+                      <Badge className="shrink-0 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+                        Vencida
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {item.clientes?.razao_social ?? "Sem cliente vinculado"}
+                    {item.prazo ? ` · prazo ${formatarData(item.prazo)}` : " · sem prazo"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Link href="/pendencias" className="mt-3 inline-block text-xs text-primary hover:underline">
+          Ver todas as pendências →
+        </Link>
+      </CardContent>
     </Card>
   );
 }

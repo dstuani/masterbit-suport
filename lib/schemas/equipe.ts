@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { EstadoFormulario } from "@/lib/forms";
+
 const textoOpcional = z
   .string()
   .trim()
@@ -38,7 +40,27 @@ export const atribuicaoSchema = z.object({
   responsavel_id: z.uuid("Selecione o responsável"),
 });
 
+/**
+ * Papel na criação: sem "owner" de propósito. Promover a owner é uma ação
+ * deliberada à parte, no controle que já existe na lista de usuários — não algo
+ * que se escolha de passagem ao preencher um formulário de cadastro.
+ */
+export const ROLES_PARA_NOVO_USUARIO = ["tecnico", "visualizador"] as const;
+
+export const criarUsuarioSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o nome"),
+  email: z.email("E-mail inválido"),
+  role: z.enum(ROLES_PARA_NOVO_USUARIO, "Papel inválido"),
+});
+
 export type DadosPerfil = z.infer<typeof perfilSchema>;
 export type DadosPapel = z.infer<typeof papelSchema>;
 export type DadosSituacao = z.infer<typeof situacaoSchema>;
 export type DadosAtribuicao = z.infer<typeof atribuicaoSchema>;
+export type DadosCriarUsuario = z.infer<typeof criarUsuarioSchema>;
+
+/** Carrega a senha temporária de volta pro formulário — só existe em memória, uma vez. */
+export type EstadoCriarUsuario = EstadoFormulario & {
+  senhaTemporaria?: string;
+  emailCriado?: string;
+};

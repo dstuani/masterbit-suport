@@ -32,6 +32,7 @@ import {
 import { CaixaDeInteracao, Conclusao, TrocaDeStatus } from "./acoes";
 import { EnviarAnexos, RemoverAnexo } from "./anexos";
 import { AtribuirResponsavel } from "./atribuir";
+import { TituloDoAtendimento } from "./titulo";
 
 export default async function AtendimentoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -71,7 +72,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
             <Badge className={status.cor}>{status.rotulo}</Badge>
             <Badge className={prioridade.cor}>{prioridade.rotulo}</Badge>
           </div>
-          <h1 className="mt-1.5 text-xl font-semibold tracking-tight">{atendimento.titulo}</h1>
+          <TituloDoAtendimento atendimentoId={id} titulo={atendimento.titulo} />
           <p className="mt-1 text-sm text-muted-foreground">
             <Link href={`/clientes/${atendimento.cliente_id}`} className="hover:underline">
               {atendimento.clientes?.razao_social}

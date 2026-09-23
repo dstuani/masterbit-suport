@@ -108,6 +108,27 @@ export type StatusPendencia = keyof typeof STATUS_PENDENCIA;
 export type TipoEvento = keyof typeof TIPOS_EVENTO;
 export type TipoInteracao = keyof typeof TIPOS_INTERACAO;
 
+export const STATUS_TOPICO_CONSULTORIA = {
+  pendente: {
+    rotulo: "Pendente",
+    cor: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+  },
+  em_andamento: {
+    rotulo: "Em andamento",
+    cor: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  },
+  concluido: {
+    rotulo: "Concluído",
+    cor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  cancelado: {
+    rotulo: "Cancelado",
+    cor: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  },
+} as const;
+
+export type StatusTopicoConsultoria = keyof typeof STATUS_TOPICO_CONSULTORIA;
+
 /** Status em que o atendimento continua consumindo atenção. */
 export const STATUS_EM_ABERTO: StatusAtendimento[] = [
   "aberto",
