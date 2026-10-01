@@ -62,8 +62,13 @@ export default async function AgendaPage({
     status: vista === "proximos" ? "pendentes" : undefined,
   });
 
-  // Agrupa por dia
-  const diasComEventos = agruparPorDia(eventos, diaParam ? parseISO(diaParam) : undefined);
+  // "Próximos" olha para frente (o mais cedo primeiro); "Este mês" e "Todos" são
+  // histórico, e o que interessa é o mais recente no topo.
+  const diasComEventos = agruparPorDia(
+    eventos,
+    diaParam ? parseISO(diaParam) : undefined,
+    vista !== "proximos",
+  );
 
   return (
     <>
@@ -205,6 +210,7 @@ function CartaoEvento({ evento }: { evento: EventoComContexto }) {
 function agruparPorDia(
   eventos: EventoComContexto[],
   diaFiltro?: Date,
+  maisRecentePrimeiro = false,
 ): { dia: Date; eventos: EventoComContexto[] }[] {
   const mapa = new Map<string, { dia: Date; eventos: EventoComContexto[] }>();
 
@@ -216,7 +222,16 @@ function agruparPorDia(
     mapa.get(chave)!.eventos.push(evento);
   }
 
-  return [...mapa.values()].sort((a, b) => a.dia.getTime() - b.dia.getTime());
+  const sentido = maisRecentePrimeiro ? -1 : 1;
+  const grupos = [...mapa.values()].sort((a, b) => sentido * (a.dia.getTime() - b.dia.getTime()));
+
+  // O serviço devolve os eventos em ordem crescente de horário; dentro do dia,
+  // acompanha o mesmo sentido da lista.
+  if (maisRecentePrimeiro) {
+    for (const grupo of grupos) grupo.eventos.reverse();
+  }
+
+  return grupos;
 }
 
 function rotuloDoDia(dia: Date): string {

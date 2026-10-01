@@ -7,7 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { STATUS_TOPICO_CONSULTORIA } from "@/lib/constants";
 import { supabaseConfigurado } from "@/lib/env";
-import { listarTopicos, obterProjetoPrincipal } from "@/lib/services/consultoria";
+import {
+  listarTopicos,
+  obterProjetoPrincipal,
+  progressoDoProjeto,
+} from "@/lib/services/consultoria";
+import { BarraDeProgresso } from "./barra";
 import { NovoTopico } from "./novo-topico";
 
 export const metadata = { title: "Consultoria Citel" };
@@ -46,6 +51,8 @@ export default async function ConsultoriaPage() {
   }
 
   const topicos = await listarTopicos(projeto.id);
+  const concluidos = topicos.filter((t) => t.status === "concluido").length;
+  const cancelados = topicos.filter((t) => t.status === "cancelado").length;
 
   return (
     <>
@@ -53,6 +60,21 @@ export default async function ConsultoriaPage() {
         titulo={projeto.nome}
         descricao="Tópicos do escopo, com comentários e anexos de cada visita."
       />
+
+      {topicos.length > 0 ? (
+        <Card className="mb-4">
+          <CardContent className="p-5">
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-sm text-muted-foreground">Progresso geral</span>
+              <span className="text-xs text-muted-foreground">
+                {concluidos} de {topicos.length - cancelados}{" "}
+                {topicos.length - cancelados === 1 ? "tópico concluído" : "tópicos concluídos"}
+              </span>
+            </div>
+            <BarraDeProgresso valor={progressoDoProjeto(topicos)} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       {topicos.length === 0 ? (
         <Card>
@@ -86,7 +108,10 @@ export default async function ConsultoriaPage() {
                         </p>
                       ) : null}
                     </div>
-                    <Badge className={`${status.cor} shrink-0`}>{status.rotulo}</Badge>
+                    <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-56">
+                      <Badge className={`${status.cor} self-start`}>{status.rotulo}</Badge>
+                      <BarraDeProgresso valor={topico.progresso} />
+                    </div>
                   </Link>
                 </li>
               );

@@ -27,6 +27,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const { resposta, user } = await atualizarSessao(request);
+
+  // /sair não pode ser desviada em nenhum sentido: logado precisa chegar até ela
+  // para o logout acontecer, e deslogado não deve ser mandado ao login com ?de=/sair
+  // (o que o deslogaria de novo logo após entrar).
+  if (pathname === "/sair") return resposta;
+
   const ehRotaPublica = ROTAS_PUBLICAS.some((rota) => pathname.startsWith(rota));
 
   if (!user && !ehRotaPublica) {

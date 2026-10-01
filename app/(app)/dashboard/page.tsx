@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  AlarmClock,
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Clock,
@@ -15,13 +15,16 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { STATUS_ATENDIMENTO } from "@/lib/constants";
+import { STATUS_ATENDIMENTO, TIPOS_EVENTO } from "@/lib/constants";
 import { supabaseConfigurado } from "@/lib/env";
-import { DIAS_PARA_PARADO, obterResumo, type ResumoDashboard } from "@/lib/services/dashboard";
+import { listarEventos, type EventoComContexto } from "@/lib/services/agenda";
+import { obterResumo, type ResumoDashboard } from "@/lib/services/dashboard";
 import { listarPendencias, type PendenciaComContexto } from "@/lib/services/pendencias";
 import { formatarData, formatarDuracao, formatarRelativo } from "@/lib/utils";
 
 const LIMITE_DE_PENDENCIAS_NO_DASHBOARD = 6;
+const LIMITE_DE_EVENTOS_NO_DASHBOARD = 6;
+const DIAS_DA_AGENDA_NO_DASHBOARD = 30;
 
 export const metadata = { title: "Dashboard" };
 
@@ -41,9 +44,21 @@ export default async function DashboardPage() {
     );
   }
 
-  const [resumo, pendencias] = await Promise.all([
+  // A agenda parte do início de hoje: um compromisso das 9h ainda conta às 15h,
+  // enquanto não for marcado como realizado.
+  const inicioDeHoje = new Date();
+  inicioDeHoje.setHours(0, 0, 0, 0);
+  const fimDaJanela = new Date(inicioDeHoje);
+  fimDaJanela.setDate(fimDaJanela.getDate() + DIAS_DA_AGENDA_NO_DASHBOARD);
+
+  const [resumo, pendencias, eventos] = await Promise.all([
     obterResumo(),
     listarPendencias({ status: "abertas", limite: LIMITE_DE_PENDENCIAS_NO_DASHBOARD }),
+    listarEventos({
+      status: "pendentes",
+      de: inicioDeHoje.toISOString(),
+      ate: fimDaJanela.toISOString(),
+    }),
   ]);
 
   return (
@@ -112,14 +127,7 @@ export default async function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <BlocoDePendencias itens={pendencias} />
 
-            <BlocoDeAtendimentos
-              titulo={`Parados há mais de ${DIAS_PARA_PARADO} dias`}
-              descricao="Em aberto e sem nenhum registro recente."
-              icone={AlarmClock}
-              itens={resumo.parados}
-              vazio="Nada parado. Todos os atendimentos em aberto tiveram movimento recente."
-              destaque
-            />
+            <BlocoDeAgenda eventos={eventos.slice(0, LIMITE_DE_EVENTOS_NO_DASHBOARD)} total={eventos.length} />
 
             <BlocoDeAtendimentos
               titulo="Aguardando retorno"
@@ -237,6 +245,68 @@ function BlocoDePendencias({ itens }: { itens: PendenciaComContexto[] }) {
         )}
         <Link href="/pendencias" className="mt-3 inline-block text-xs text-primary hover:underline">
           Ver todas as pendências →
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BlocoDeAgenda({ eventos, total }: { eventos: EventoComContexto[]; total: number }) {
+  const agora = new Date();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="size-4 text-muted-foreground" />
+          Agenda
+          {total > 0 ? (
+            <span className="text-xs font-normal text-muted-foreground">({total})</span>
+          ) : null}
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Retornos e visitas dos próximos {DIAS_DA_AGENDA_NO_DASHBOARD} dias.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {eventos.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">Nada agendado para os próximos dias.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {eventos.map((evento) => {
+              const inicio = new Date(evento.inicio);
+              const atrasado = !evento.dia_inteiro && inicio < agora;
+
+              return (
+                <li key={evento.id} className="border-b border-border py-2.5 last:border-0 last:pb-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <Link
+                      href={`/agenda/${evento.id}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      {evento.titulo}
+                    </Link>
+                    {atrasado ? (
+                      <Badge className="shrink-0 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+                        Atrasado
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {evento.dia_inteiro
+                      ? formatarData(evento.inicio, "dd/MM")
+                      : formatarData(evento.inicio, "dd/MM 'às' HH:mm")}
+                    {" · "}
+                    {TIPOS_EVENTO[evento.tipo]}
+                    {evento.clientes?.razao_social ? ` · ${evento.clientes.razao_social}` : ""}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Link href="/agenda" className="mt-3 inline-block text-xs text-primary hover:underline">
+          Ver a agenda completa →
         </Link>
       </CardContent>
     </Card>

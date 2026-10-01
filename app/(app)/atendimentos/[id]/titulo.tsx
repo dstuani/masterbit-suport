@@ -77,12 +77,12 @@ export function TituloDoAtendimento({
           autoFocus
           value={valor}
           disabled={pendente}
-          onChange={(e) => setValor(e.target.value)}
+          onChange={(e) => setValor(e.target.value.toUpperCase())}
           onKeyDown={(e) => {
             if (e.key === "Enter") salvar();
             if (e.key === "Escape") cancelar();
           }}
-          className="text-base font-semibold"
+          className="text-base font-semibold uppercase"
         />
         <Button
           type="button"

@@ -7,7 +7,12 @@ import {
   extensaoDe,
   limparNomeDoAnexo,
 } from "@/lib/anexos";
-import type { DadosComentario, DadosStatusTopico, DadosTopico } from "@/lib/schemas/consultoria";
+import type {
+  DadosComentario,
+  DadosProgressoTopico,
+  DadosStatusTopico,
+  DadosTopico,
+} from "@/lib/schemas/consultoria";
 import { traduzirErro } from "@/lib/services/erros";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Tabelas } from "@/lib/types/database";
@@ -90,12 +95,35 @@ export async function mudarStatusTopico(dados: DadosStatusTopico): Promise<void>
   await exigirPermissaoDeEscrita();
   const supabase = await criarClienteServidor();
 
+  // Concluído e 40% de progresso se contradizem: concluir leva ao 100%.
   const { error } = await supabase
     .from("consultoria_topicos")
-    .update({ status: dados.status })
+    .update(dados.status === "concluido" ? { status: dados.status, progresso: 100 } : { status: dados.status })
     .eq("id", dados.id);
 
   if (error) throw new Error(traduzirErro(error.message));
+}
+
+export async function mudarProgressoTopico(dados: DadosProgressoTopico): Promise<void> {
+  await exigirPermissaoDeEscrita();
+  const supabase = await criarClienteServidor();
+
+  const { error } = await supabase
+    .from("consultoria_topicos")
+    .update({ progresso: dados.progresso })
+    .eq("id", dados.id);
+
+  if (error) throw new Error(traduzirErro(error.message));
+}
+
+/**
+ * Progresso geral do projeto: média dos tópicos em andamento de fato. Cancelado
+ * não entra — não é trabalho que vai acontecer, e puxaria a média para baixo.
+ */
+export function progressoDoProjeto(topicos: Pick<Topico, "status" | "progresso">[]): number {
+  const validos = topicos.filter((t) => t.status !== "cancelado");
+  if (validos.length === 0) return 0;
+  return Math.round(validos.reduce((soma, t) => soma + t.progresso, 0) / validos.length);
 }
 
 export async function listarComentarios(topicoId: string): Promise<Comentario[]> {

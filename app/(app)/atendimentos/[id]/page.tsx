@@ -372,6 +372,34 @@ function ItemDaTimeline({ interacao, ultimo }: { interacao: ItemInteracao; ultim
         >
           {descricao}
         </p>
+
+        {interacao.anexosResolvidos.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {interacao.anexosResolvidos.map((anexo) =>
+              anexo.url && ehImagem(anexo.tipoMime) ? (
+                <a key={anexo.id} href={anexo.url} target="_blank" rel="noopener noreferrer">
+                  {/* URL assinada externa: next/image exigiria configurar o domínio do Storage. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={anexo.url}
+                    alt={anexo.nome}
+                    className="size-20 rounded-app border border-border object-cover"
+                  />
+                </a>
+              ) : (
+                <a
+                  key={anexo.id}
+                  href={anexo.url ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-app border border-border px-2 py-1 text-xs text-primary hover:underline"
+                >
+                  {anexo.nome}
+                </a>
+              ),
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

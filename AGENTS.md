@@ -8,46 +8,395 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# SupportDesk
+# Masterbit Suport (SupportDesk)
 
-Sistema de organização de atendimentos de suporte técnico. Uso inicial por um único
-profissional, arquitetado desde o início para suportar uma equipe. Leia o `README.md`
-para stack, estrutura e roadmap.
+Guia para quem vai mexer neste código — pessoa ou agente. Nome interno do projeto:
+**SupportDesk** (pasta `suport`, pacote `suport`). Nome exibido na interface:
+**Masterbit Suport**. Repositório: `github.com/dstuani/masterbit-suport`, branch `main`.
 
 ## Isolamento
 
-Este projeto é **autocontido**. Pastas vizinhas contêm aplicações sem relação com esta:
-não importe, copie nem referencie o código, a configuração, o schema ou as dependências
-delas. Não edite nada fora desta pasta — nem configurações na raiz do workspace. Toda
-ferramenta deste projeto (dev server, migrations, lint) é configurada aqui dentro.
+Este projeto é **autocontido**. Pastas vizinhas (`../hr-suite`, `../masterbit`, etc.)
+são aplicações sem relação: não importe, copie nem referencie código, configuração,
+schema ou dependências delas. Não edite nada fora desta pasta.
 
-## Regras deste projeto
+---
 
-- **Next.js 16**: o middleware chama-se `proxy.ts` e fica na raiz. `searchParams` e
-  `cookies()` são assíncronos — sempre `await`.
-- **Português no domínio**: tabelas, colunas, enums, rotas e nomes de função em pt-BR.
-  Termos técnicos (props, tipos utilitários, libs) em inglês.
-- **Autorização**: `proxy.ts` é checagem otimista, não é defesa. A autorização real é o
-  RLS no Postgres. Toda Server Action revalida sessão e entrada (Zod) antes de escrever —
-  Server Actions são endpoints POST públicos.
-- **Supabase no servidor**: use `getUser()`, nunca `getSession()`. Crie um cliente por
-  requisição (`criarClienteServidor()`); jamais guarde em variável de módulo.
-- **Migrations**: SQL versionado em `supabase/migrations/`, não Prisma. Depois de alterar
-  o schema, rode `npm run db:types`.
-- **Timeline append-only**: `atendimento_interacoes` nunca é editada nem apagada.
-- **Soft delete**: clientes e atendimentos usam `ativo`/`status`, nunca `DELETE`.
-- **Estado**: dado canônico em RSC; filtros e paginação na URL; TanStack Query só onde há
-  polling ou scroll infinito; Zustand só para UI efêmera.
-- **Porta 3100** no dev server, para não colidir com outros projetos.
-- **Validar o schema sem Docker**: `npm run db:check` (aplica as migrations) e
-  `npm run db:test` (triggers e constraints) rodam num Postgres em WASM. Rode os dois
-  depois de mexer em qualquer migration, e `npm run db:types:local` para regerar os tipos.
-- **`lib/types/database.ts` é gerado.** Não edite à mão.
-- **Arquivos `"use server"` só exportam funções async.** Tipos e constantes de formulário
-  moram em `lib/forms.ts`, ou o build falha ao coletar as rotas.
-- **Campos opcionais de formulário aceitam ausente, não só vazio.** Um `<select>` ou
-  `<input>` desabilitado não entra no FormData; schemas que exigem string reprovam por um
-  campo que o próprio formulário não enviou. Use os helpers `.optional().transform(...)`
-  de `lib/schemas/`, e rode `npm run test:forms` ao mexer neles.
-- **Todo campo do formulário mostra a mensagem do seu erro.** Sem isso o usuário lê
-  "confira os campos destacados" sem ter destaque nenhum na tela.
+## 1. O que o sistema faz
+
+É a **memória de trabalho de um profissional de suporte técnico** (hoje, o Denilson,
+da Masterbit). Ele registra cada atendimento feito para cada cliente e permite, depois:
+
+- saber **o que está aberto**, o que está **aguardando** o cliente ou um terceiro, e
+  o que ficou **pendente**;
+- **programar retornos** e visitas (agenda);
+- **consultar o histórico**: "como resolvi isso da última vez?" — por palavra, por
+  cliente, ou por casos parecidos já resolvidos;
+- ver **relatórios** de volume e horas gastas;
+- acompanhar **projetos de consultoria** tópico a tópico (hoje, a Consultoria Citel).
+
+Uso atual: um único usuário. O sistema foi desenhado desde o início para equipe
+(papéis, atribuição, auditoria), mas a operação real é de uma pessoa só.
+
+---
+
+## 2. Tecnologias e como rodar
+
+### Stack (o que está de fato em uso)
+
+| Camada | Tecnologia |
+|---|---|
+| Framework | Next.js 16.3 (App Router, Turbopack), React 19.2, TypeScript |
+| Estilo | Tailwind CSS v4 + tokens CSS em `app/globals.css` |
+| Backend | Server Components + Server Actions + 1 Route Handler — sem API separada |
+| Banco | Postgres no Supabase, com RLS em todas as tabelas |
+| Auth | Supabase Auth via `@supabase/ssr` (sessão em cookie) |
+| Arquivos | Supabase Storage, bucket privado `anexos` |
+| Validação | Zod 4 (`lib/schemas/`) |
+| Datas | date-fns com locale pt-BR |
+| UI | componentes próprios em `components/ui/` + Radix (só Dialog, Label, Slot) + lucide-react |
+| Planilhas | `xlsx` (import dinâmico, só na tela de importar contatos) |
+| Avisos | `sonner` (toast) |
+| Testes de schema | PGlite (Postgres em WASM) — sem Docker |
+
+**Declaradas no `package.json` mas não usadas em lugar nenhum:** `react-hook-form`,
+`@hookform/resolvers`, `@tanstack/react-query`, `@tanstack/react-table`, `nuqs`,
+`zustand`, `@supabase/server` e vários `@radix-ui/*` (avatar, checkbox, dropdown,
+popover, scroll-area, select, separator, tabs, tooltip). O `README.md` cita
+react-hook-form e TanStack Table, mas os formulários usam `<form action>` +
+`useActionState` + Zod, e as tabelas são HTML puro.
+
+### Como rodar
+
+```bash
+npm install
+cp .env.example .env.local   # preencher as chaves do Supabase
+npm run dev                  # http://localhost:3100  (porta fixa, não 3000)
+```
+
+Variáveis (`.env.local`, nunca commitar — o `.gitignore` já bloqueia `.env*`):
+
+| Variável | Para quê |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ou `..._ANON_KEY`) | chave pública; qualquer uma das duas serve |
+| `SUPABASE_SERVICE_ROLE_KEY` | **opcional**; só para criar usuário em Configurações → Equipe. Ignora todo o RLS — **nunca** com prefixo `NEXT_PUBLIC_` |
+| `NEXT_PUBLIC_APP_URL` | URL base do app |
+
+Sem as chaves do Supabase, o app sobe em **modo de visualização** (só em
+desenvolvimento): navega pelo shell, sem login nem dados. Em produção, o `proxy.ts`
+devolve erro 500 de propósito.
+
+**Primeiro acesso:** não há tela de cadastro. Crie o usuário no painel do Supabase
+(Authentication → Users → Add user, marcando *Auto Confirm*). O primeiro usuário vira
+`owner` e ganha a organização. Os seguintes entram como `tecnico` (ou crie-os por
+Configurações → Equipe, se a service role key estiver configurada).
+
+### Scripts
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` / `build` / `start` | servidor de desenvolvimento, build e produção (porta 3100) |
+| `npm run lint` | ESLint |
+| `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
+| `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
+| `npm run db:test` | testa triggers, constraints e as funções do RLS (57 verificações) |
+| `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
+| `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
+| `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
+
+**Fluxo ao mexer no banco:** escrever a migration → `db:check` → `db:test` →
+`db:types:local` → `npx tsc --noEmit` → `npm run build` → **`db:push`**. Se o código
+for publicado antes do `db:push`, as telas quebram com
+`Could not find the 'X' column ... in the schema cache`.
+
+---
+
+## 3. Estrutura de pastas
+
+```
+app/
+├── layout.tsx              raiz: fontes, script anti-piscar do tema, <Toaster>
+├── globals.css             tokens de cor (claro/escuro) e mapeamento para o Tailwind
+├── page.tsx                redireciona para /dashboard
+├── (auth)/login/           tela de login + Server Action entrar()/sair()
+├── sair/route.ts           GET: encerra a sessão e volta ao login (?motivo=inativo)
+├── (app)/                  área autenticada (layout com Sidebar + Header)
+│   ├── dashboard/
+│   ├── atendimentos/       lista, novo, [id] (detalhe) — o núcleo do sistema
+│   ├── clientes/           lista, novo, [id] (abas), [id]/editar, [id]/importar
+│   ├── pendencias/         lista, nova
+│   ├── agenda/             lista + minicalendário, novo, [id]
+│   ├── consultoria/        tópicos do projeto, [id] (detalhe do tópico)
+│   ├── consultas/          busca no histórico + buscas salvas + CSV
+│   ├── casos-parecidos/    "já resolvi algo assim?"
+│   ├── relatorios/         métricas do período + CSV
+│   └── configuracoes/      abas: sistemas, categorias, conta, equipe, auditoria
+└── api/clientes/[id]/contexto/route.ts   GET: filiais/contatos/sistemas de um cliente
+
+components/
+├── layout/   sidebar, header, mobile-nav, nav.ts (MENU — fonte única), page-header,
+│             logo, aviso-supabase
+└── ui/       button, card, badge, input, select, textarea, label, campo
+
+lib/
+├── auth.ts          exigirUsuario / exigirPerfil / exigirPermissaoDeEscrita
+├── env.ts           leitura das variáveis, supabaseConfigurado, exigirServiceRole
+├── constants.ts     rótulos e cores dos enums do banco (espelho de base.sql)
+├── forms.ts         EstadoFormulario, erroDeValidacao, mensagemDoErro
+├── utils.ts         cn() e formatadores pt-BR (data, duração, tamanho, moeda, CPF/CNPJ)
+├── anexos.ts        regras de anexo compartilhadas (tipos aceitos, 10 MB, assinatura)
+├── tema.ts          tema claro/escuro/automático (localStorage + script anti-piscar)
+├── schemas/         Zod por entidade — mesma validação no form e na Server Action
+├── services/        regra de negócio e acesso ao banco, um arquivo por domínio
+├── supabase/        server.ts (por requisição), proxy.ts (sessão), admin.ts (service role)
+└── types/database.ts   GERADO — não editar à mão
+
+supabase/migrations/   SQL versionado — única fonte da verdade do banco
+scripts/               validar-migrations, testar-schema, gerar-tipos, testar-formularios
+proxy.ts               o "middleware" do Next 16: renova sessão e manda para /login
+public/masterbit-logo.png
+```
+
+**Onde fica cada coisa, na prática:** a página (`page.tsx`, Server Component) chama
+um serviço em `lib/services/`; os formulários (componentes `"use client"` na mesma
+pasta da rota) chamam Server Actions do `actions.ts` da rota, que validam com o schema
+de `lib/schemas/` e chamam o serviço.
+
+---
+
+## 4. Telas e como se conectam
+
+Menu lateral definido em `components/layout/nav.ts`. Todas as rotas exceto `/login`
+exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
+
+| Tela | O que faz | Liga com |
+|---|---|---|
+| **Dashboard** | contadores (abertos, em andamento, aguardando, resolvidos no mês) e 3 colunas: Pendências, Agenda (próximos 30 dias), Aguardando retorno; abaixo, Últimos atendimentos (só em aberto) | contadores levam a `/atendimentos?status=…` |
+| **Atendimentos** (lista) | sem parâmetros abre filtrado em **Em aberto**; `status=todos` mostra tudo. Busca por número, assunto, cliente e — com 3+ letras — por descrição, solução e texto do histórico | `/atendimentos/[id]` |
+| **Novo atendimento** | cliente + assunto (sempre em MAIÚSCULAS) bastam; aceita `?cliente=` e `?titulo=` | selects de filial/contato/sistema vêm da API `/api/clientes/[id]/contexto` |
+| **Detalhe do atendimento** | assunto editável (lápis); caixa "o que foi feito" com anexo junto da nota (clipe, arrastar, Ctrl+V); timeline; status; resolver (exige solução); responsável; card de anexos; pendências | botões levam a `/pendencias/nova?atendimento=` e `/agenda/novo?atendimento=` |
+| **Clientes** | lista com filtro de status; ficha com abas Visão geral, Filiais, Contatos (editar, excluir, reativar, importar planilha), Sistemas | Editar → `/clientes/[id]/editar` (tem "Excluir cliente", que inativa) |
+| **Pendências** | agrupadas por status; vencidas em vermelho; iniciar, concluir (com resultado), cancelar | nascem de um atendimento ou de um cliente |
+| **Agenda** | Próximos (cedo → tarde), Este mês e Todos (recente → antigo); minicalendário filtra por `?dia=` | detalhe: realizar (pode gravar interação no atendimento), remarcar, cancelar |
+| **Consultoria Citel** | tópicos do projeto com status e barra de progresso; progresso geral (média, sem cancelados) | detalhe do tópico: status, controle de 0–100%, comentários, anexos |
+| **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
+| **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
+| **Relatórios** | período (presets ou datas), KPIs, distribuição por status/prioridade/tipo/canal/cliente/categoria, evolução mensal, CSV | — |
+| **Configurações** | Sistemas, Categorias, Conta (tema, perfil, senha); Equipe e Auditoria só para `owner` | Equipe: papel, ativar/desativar, novo usuário com senha temporária |
+
+**Fluxo central:** cliente → atendimento → interações na timeline (texto, tempo,
+anexos) → pendências e retornos agendados → resolução com solução escrita → a solução
+vira memória consultável em Consultas e Casos parecidos.
+
+---
+
+## 5. Banco de dados
+
+19 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
+
+```
+organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
+              │
+              ├─ clientes ─┬─ filiais
+              │            ├─ cliente_contatos ──(filial_id)── filiais
+              │            └─ clientes_sistemas ── sistemas
+              │
+              ├─ categorias ── subcategorias
+              │
+              ├─ atendimentos ── cliente, filial, contato, sistema, categoria,
+              │      │           subcategoria, responsavel (profile)
+              │      ├─ atendimento_interacoes   (timeline, append-only)
+              │      ├─ atendimento_anexos       (metadados; arquivo no Storage)
+              │      ├─ pendencias               (ou ligada só ao cliente)
+              │      └─ agenda_eventos           (ou ligado a cliente/pendência)
+              │
+              ├─ consultoria_projetos ── consultoria_topicos ─┬─ consultoria_comentarios
+              │                                               └─ consultoria_anexos
+              └─ audit_logs   (preenchida só por trigger)
+
+view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
+                          responsável + contagem de pendências abertas
+```
+
+### Regras que estão no banco (não na aplicação)
+
+- **Isolamento por organização:** `org_atual()`, `papel_atual()` e `pode_escrever()`
+  são usadas por todas as policies. Leitura: mesma organização. Escrita: `owner` ou
+  `tecnico`. `visualizador` só lê. Usuário com `ativo = false` não lê nem escreve nada.
+- **Timeline imutável:** `atendimento_interacoes` e `consultoria_comentarios` só têm
+  policy de SELECT e INSERT. Correção entra como nova interação.
+- **Triggers do atendimento:** número `AT-AAAA-NNNNN` automático; interação "Atendimento
+  aberto" na criação; interação de mudança de status; `finalizado_em` preenchido ao
+  resolver/cancelar e limpo ao reabrir; tempo das interações somado no atendimento.
+- **Novo usuário:** trigger em `auth.users` cria o `profile` (primeiro = owner, demais
+  = tecnico) e semeia 7 categorias e 28 subcategorias.
+- **Proteção de papel:** trigger `proteger_profile` — só owner muda papel ou situação;
+  a organização sempre mantém um owner ativo.
+- **Anexos:** só `removido_em` pode mudar (soft delete); caminho tem de começar pelo
+  `org_id`; limite de 10 MB. Triggers `proteger_anexo` (atendimento) e
+  `proteger_anexo_consultoria` (tópico) são **funções diferentes** — cada uma conhece
+  a sua coluna (`atendimento_id` / `topico_id`).
+- **Auditoria:** clientes, atendimentos, pendências, profiles, clientes_sistemas e
+  consultoria_topicos gravam em `audit_logs` (só o owner lê).
+- **Constraints com mensagem em português:** `lib/services/erros.ts` traduz o nome da
+  constraint. Constraint nova → acrescentar lá.
+
+### Storage
+
+Um bucket só, `anexos`, privado. Caminhos: `{org_id}/{atendimento_id}/{uuid}.ext` e
+`{org_id}/consultoria/{topico_id}/{uuid}.ext`. A policy confere só a primeira pasta
+(= organização). Não há policy de UPDATE nem DELETE: arquivo enviado nunca é apagado.
+URLs exibidas são assinadas e valem 1 hora.
+
+---
+
+## 6. Padrões de código e de layout
+
+### Regras obrigatórias
+
+- **Next.js 16:** o middleware é `proxy.ts`. `params`, `searchParams` e `cookies()`
+  são assíncronos — sempre `await`.
+- **Português no domínio:** tabelas, colunas, enums, rotas, funções e variáveis em
+  pt-BR. Termos técnicos (props, tipos utilitários, libs) em inglês.
+- **Autorização:** `proxy.ts` é checagem otimista, não defesa. A defesa é o RLS. Toda
+  Server Action revalida sessão e entrada (Zod) antes de escrever — Server Actions são
+  endpoints POST públicos.
+- **`org_id` sempre do perfil logado**, nunca do formulário.
+- **Supabase no servidor:** `getUser()`, nunca `getSession()`. Um cliente por
+  requisição (`criarClienteServidor()`), nunca em variável de módulo. O cliente admin
+  (`lib/supabase/admin.ts`) só em código de servidor e só para o que exige service role.
+- **Migrations:** SQL em `supabase/migrations/`, nunca editar uma já aplicada — crie
+  outra. Rode `db:check` e `db:test` sempre que mexer no schema.
+- **`lib/types/database.ts` é gerado.** Não editar à mão.
+- **Arquivos `"use server"` só exportam funções async.** Tipos e constantes vão para
+  `lib/forms.ts`, `lib/schemas/` ou o serviço — senão o build falha.
+- **Campos opcionais aceitam ausente, não só vazio:** campo desabilitado não entra no
+  FormData. Use os helpers `.optional().transform(...)` dos schemas e rode
+  `npm run test:forms`.
+- **Todo campo mostra a mensagem do seu erro** logo abaixo dele.
+- **Soft delete:** clientes (`status`), contatos (`ativo`), atendimentos, pendências e
+  eventos (`status`), anexos (`removido_em`). Nada de `DELETE` em dado de negócio.
+- **Estado:** dado canônico vem do servidor (RSC); filtros e paginação na URL;
+  `localStorage` só para preferência do navegador (tema, buscas salvas).
+- **Enums:** `lib/constants.ts` espelha os enums de `base.sql` — ao mudar um, mude o outro.
+
+### Padrão de uma funcionalidade
+
+1. `page.tsx` — Server Component, `export const dynamic = "force-dynamic"`, começa com
+   o guard `if (!supabaseConfigurado) return <AvisoSupabase />`, busca pelo serviço.
+2. `lib/services/x.ts` — `exigirPermissaoDeEscrita()` em toda escrita, `traduzirErro`
+   nos erros do Supabase.
+3. `lib/schemas/x.ts` — schema Zod.
+4. `app/(app)/x/actions.ts` — `"use server"`; valida com
+   `schema.safeParse(dadosDoFormulario(formData))`, chama o serviço, `revalidatePath`.
+5. Componente cliente na mesma pasta da rota.
+
+Dois formatos de Server Action convivem:
+- `(_estado, formData) => Promise<EstadoFormulario>` — com `useActionState` ou chamada
+  direta; devolve erros por campo. **Use este** para qualquer coisa que possa falhar.
+- `(formData) => Promise<void>` — formulário simples (cancelar, inativar). Não tem como
+  mostrar erro: se lançar, o usuário vê a página de erro genérica do Next.
+
+Para "resetar" um formulário ao trocar de item, o padrão é **trocar a `key`** do
+componente (veja contatos e progresso), não sincronizar campo a campo.
+
+Comentários: só para o *porquê* (restrição escondida, decisão de produto), em
+português, curtos.
+
+### Padrão visual
+
+- **Shell:** Sidebar fixa (desktop) + Header com "Novo atendimento"; no celular, menu
+  em gaveta (`mobile-nav`). Conteúdo em `main` com `p-6`.
+- **Página:** `PageHeader` (título, descrição, ações à direita) → filtros → conteúdo.
+- **Contêiner padrão:** `Card` / `CardHeader` / `CardTitle` / `CardContent`.
+- **Tabela:** dentro de `Card className="overflow-hidden"` + `div overflow-x-auto`;
+  `thead` com `bg-surface-muted`; células `px-4 py-2.5`.
+- **Detalhe:** grade `lg:grid-cols-[1fr_20rem]` — conteúdo à esquerda, lateral à direita.
+- **Estado vazio:** card centralizado com ícone, frase curta e, quando faz sentido, o botão
+  da ação.
+- **Badges:** cor e rótulo vêm de `lib/constants.ts` (ex.: `STATUS_ATENDIMENTO[s].cor`).
+- **Botões:** variantes `primary`, `outline`, `ghost`, `destructive`; tamanhos `sm`,
+  `md`, `lg`, `icon`. Ícones `lucide-react` em `size-3.5`/`size-4`.
+- **Erro de campo:** texto `text-xs text-red-600 dark:text-red-400` com `role="alert"`.
+- **Cores:** só por tokens (`bg-surface`, `text-muted-foreground`, `border-border`,
+  `bg-primary`…) definidos em `app/globals.css`. Tema claro, escuro e automático.
+- **Marca Masterbit:** laranja `#F47B36` (no tema claro o primário é `#C4561B`, por
+  contraste). O vermelho da logo (`#CD242B`) **não** é cor de marca na interface —
+  vermelho significa urgente, vencido e excluir.
+- **Datas e números:** sempre pelos formatadores de `lib/utils.ts` (pt-BR).
+
+---
+
+## 7. Pontos frágeis — não mexer sem cuidado
+
+### Segurança (prioridade)
+
+1. **Cadastro público coloca qualquer um dentro da organização.** O trigger
+   `tratar_novo_usuario` põe todo novo usuário de `auth.users` na primeira organização,
+   como `tecnico` (com escrita). A chave pública do Supabase vai no navegador, então,
+   se o projeto aceitar cadastro público (padrão do Supabase), qualquer pessoa pode se
+   cadastrar pela API do Auth e ler e alterar os dados dos clientes. **Mantenha
+   desligado** "Allow new users to sign up" no painel do Supabase (Authentication →
+   Sign In / Providers). Criar usuário por Configurações → Equipe continua funcionando,
+   porque usa a API admin.
+2. **Usuário desativado — corrigido em 01/10/2026, não desfazer.** `org_atual()` e
+   `papel_atual()` filtram `ativo` (migration `20261001120000`); para um desativado
+   devolvem NULL e nenhuma policy casa, nem pela API direta. No app, `exigirUsuario()`
+   manda quem não tem perfil ativo para `/sair?motivo=inativo`, e o login recusa conta
+   desativada. Consequência: o desativado não enxerga nem o próprio perfil — `perfil`
+   nulo para um usuário logado significa "inativo".
+3. **Redirecionamento do login — corrigido em 01/10/2026.** `destinoSeguro()` em
+   `app/(auth)/login/actions.ts` só aceita caminho interno (resolve contra uma origem
+   fictícia, o que barra `//site`, `/\site` e afins). Não troque por um `startsWith("/")`
+   simples.
+4. **Service role key** ignora todo o RLS. Só em `lib/supabase/admin.ts`, só no
+   servidor, nunca com `NEXT_PUBLIC_`, nunca em log.
+
+### Banco e dados
+
+5. **`supabase/schema-completo.sql` está desatualizado** (gerado em 08/09/2026). Faltam
+   as 7 migrations seguintes, inclusive a proteção de papel e o bloqueio de usuário
+   desativado. Não use para montar banco
+   novo — use `npm run db:push`.
+6. **View `atendimentos_lista`:** precisa manter `security_invoker = true` (sem isso
+   ela ignora o RLS e vaza dados entre organizações). Coluna nova em `atendimentos` só
+   aparece na lista, no dashboard, em consultas e em relatórios se for acrescentada na
+   view.
+7. **Limite de 1.000 linhas do Supabase.** Relatórios busca todos os atendimentos do
+   período sem paginação e agrega em JavaScript; a busca por conteúdo levanta IDs e os
+   passa em `id.in.(…)`. Com volume grande, os totais saem truncados sem aviso, e a URL
+   da busca pode estourar.
+8. **Suposição de organização única:** `tratar_novo_usuario` e a semente da Consultoria
+   Citel pegam "a primeira organização". Multi-empresa exigiria revisar os dois.
+9. **Função `buscar_atendimentos_parecidos`:** o gerador de tipos não descreve funções,
+   então `lib/services/similares.ts` chama o `rpc` com cast. Mudar a assinatura no SQL
+   não quebra o TypeScript — quebra em execução.
+10. **Automação fora do banco:** a primeira interação muda o atendimento de `aberto`
+    para `em_andamento` em `registrarInteracao` (aplicação), não por trigger.
+11. **Fuso horário:** "hoje", "este mês" e os períodos dos relatórios são calculados com
+    a hora do servidor; strings como `2026-09-30T23:59:59` vão sem fuso. Num servidor em
+    UTC, os limites ficam 3 horas deslocados em relação a Brasília.
+
+### Código
+
+12. **Regex de caracteres de controle** em `limparNomeDoAnexo` (`lib/anexos.ts`) é
+    `/[\x00-\x1f]/g`, mas editores e ferramentas a exibem como `[ -]`. Copiar o que se vê
+    troca a regra por "remover espaços e hífens". Não redigite essa linha.
+13. **Anexo junto da nota:** os arquivos sobem antes (`prepararAnexoAction`) e a nota grava
+    `[{id, nome}]` em `atendimento_interacoes.anexos` (jsonb). Se a nota falhar depois do
+    upload, o arquivo fica no card de Anexos sem nota correspondente.
+14. **Limite de upload:** `next.config.ts` aumenta o corpo das Server Actions para 11 MB.
+    O servidor de hospedagem também precisa aceitar esse tamanho.
+15. **`xlsx` 0.18.5:** é a última versão no npm, que tem vulnerabilidades conhecidas; as
+    correções só existem no CDN da SheetJS. Hoje lê só arquivos que o próprio usuário
+    escolhe, no navegador.
+16. **Lacunas conhecidas:**
+    - não há botão de sair (a rota `GET /sair` encerra a sessão e o `proxy.ts` a deixa
+      passar sem desvio, mas nada na interface aponta para ela; a action `sair()` segue
+      sem uso);
+    - o `proxy.ts` lista `/recuperar-senha` e `/nova-senha`, rotas que não existem;
+    - não há `error.tsx` em nenhuma rota.
+17. **Sem uso, mas presentes:** `lib/supabase/client.ts`, `components/layout/placeholder.tsx`
+    e as dependências listadas na seção 2. O `README.md` está atrás do código (fala em
+    14 tabelas e não cita Casos parecidos nem Consultoria).

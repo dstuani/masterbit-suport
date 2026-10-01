@@ -352,7 +352,27 @@ async function main() {
     auditoriaTopico.some((a) => a.campos_alterados?.includes("status")),
   );
 
-  const caminhoAnexoConsultoria = `${orgId}/consultoria/${topicoId}/${crypto.randomUUID()}.png`;
+  await db.exec(`update consultoria_topicos set progresso = 40 where id = '${topicoId}'`);
+  const { rows: comProgresso } = await db.query(
+    `select progresso from consultoria_topicos where id = $1`,
+    [topicoId],
+  );
+  verificar("progresso do tópico de consultoria é gravado", comProgresso[0].progresso === 40);
+
+  await deveRejeitar(
+    db,
+    "recusa progresso acima de 100%",
+    `update consultoria_topicos set progresso = 101 where id = '${topicoId}'`,
+    "consultoria_topicos_progresso_valido",
+  );
+  await deveRejeitar(
+    db,
+    "recusa progresso negativo",
+    `update consultoria_topicos set progresso = -1 where id = '${topicoId}'`,
+    "consultoria_topicos_progresso_valido",
+  );
+
+  const caminhoAnexoConsultoria =`${orgId}/consultoria/${topicoId}/${crypto.randomUUID()}.png`;
   await db.exec(
     `insert into consultoria_anexos (org_id, topico_id, caminho, nome_original, tipo_mime, tamanho_bytes, enviado_por)
      values ('${orgId}', '${topicoId}', '${caminhoAnexoConsultoria}', 'evidencia.png', 'image/png', 2048, '${userId}')`,
@@ -421,6 +441,33 @@ async function main() {
   await db.exec(`update profiles set role = 'visualizador' where id = '${tecnicoId}'`);
   const { rows: promovido } = await db.query(`select role from profiles where id = $1`, [tecnicoId]);
   verificar("owner altera o papel de outro usuário", promovido[0].role === "visualizador");
+
+  // ── Usuário desativado perde o acesso no banco ──
+  // As policies dependem de org_atual()/papel_atual()/pode_escrever(); testá-las
+  // cobre todas as tabelas (os testes rodam como superusuário, que ignora o RLS).
+  await db.exec(`update profiles set role = 'tecnico', ativo = false where id = '${tecnicoId}'`);
+  await db.exec(`update auth.sessao_teste set usuario = '${tecnicoId}'`);
+  const { rows: inativo } = await db.query(
+    `select org_atual() as org, papel_atual() as papel, pode_escrever() as escreve`,
+  );
+  verificar(
+    "usuário desativado não tem organização, papel nem escrita",
+    inativo[0].org === null && inativo[0].papel === null && inativo[0].escreve === false,
+    JSON.stringify(inativo[0]),
+  );
+
+  await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
+  await db.exec(`update profiles set ativo = true where id = '${tecnicoId}'`);
+  await db.exec(`update auth.sessao_teste set usuario = '${tecnicoId}'`);
+  const { rows: reativado } = await db.query(
+    `select org_atual() as org, papel_atual() as papel, pode_escrever() as escreve`,
+  );
+  verificar(
+    "usuário reativado recupera o acesso",
+    reativado[0].org === orgId && reativado[0].papel === "tecnico" && reativado[0].escreve === true,
+    JSON.stringify(reativado[0]),
+  );
+  await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
 
   // ── Anexos ──
   const { rows: alvo } = await db.query(`select id from atendimentos limit 1`);

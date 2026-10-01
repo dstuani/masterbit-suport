@@ -38,6 +38,7 @@ export function FormularioAtendimento({
   tituloInicial?: string;
 }) {
   const [estado, acao, pendente] = useActionState(criarAtendimentoAction, estadoInicial);
+  const [titulo, setTitulo] = useState((tituloInicial ?? "").toUpperCase());
   const [clienteId, setClienteId] = useState(clienteInicial ?? "");
   const [categoriaId, setCategoriaId] = useState("");
   const [contexto, setContexto] = useState<ContextoCliente>(CONTEXTO_VAZIO);
@@ -117,8 +118,10 @@ export function FormularioAtendimento({
               name="titulo"
               required
               autoFocus
-              defaultValue={tituloInicial}
-              placeholder="Ex.: NF-e rejeitada com erro 539"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value.toUpperCase())}
+              placeholder="EX.: NF-E REJEITADA COM ERRO 539"
+              className="uppercase placeholder:normal-case"
             />
             <Mensagem texto={erroDe("titulo")} />
           </Campo>

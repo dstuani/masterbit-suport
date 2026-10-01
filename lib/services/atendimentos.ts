@@ -1,4 +1,6 @@
 import { exigirPermissaoDeEscrita } from "@/lib/auth";
+import { extrairRefsDeAnexo } from "@/lib/anexos";
+import { resolverAnexosCitados, type AnexoResolvido } from "@/lib/services/anexos";
 import { traduzirErro } from "@/lib/services/erros";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { STATUS_EM_ABERTO, type Prioridade, type StatusAtendimento } from "@/lib/constants";
@@ -137,7 +139,19 @@ export async function listarInteracoes(atendimentoId: string) {
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const interacoes = data ?? [];
+
+  // O jsonb só guarda {id, nome}; a URL assinada e o tipo do arquivo vêm daqui,
+  // resolvidos de uma vez para toda a timeline em vez de um select por linha.
+  const refsPorInteracao = interacoes.map((i) => extrairRefsDeAnexo(i.anexos));
+  const anexosPorId = await resolverAnexosCitados(refsPorInteracao.flat());
+
+  return interacoes.map((interacao, indice) => ({
+    ...interacao,
+    anexosResolvidos: refsPorInteracao[indice]
+      .map((ref) => anexosPorId.get(ref.id))
+      .filter((anexo): anexo is AnexoResolvido => anexo !== undefined),
+  }));
 }
 
 /**
@@ -188,6 +202,7 @@ export async function registrarInteracao(dados: DadosInteracao) {
     tipo: dados.tipo,
     conteudo: dados.conteudo,
     tempo_gasto_minutos: dados.tempo_gasto_minutos ?? 0,
+    anexos: dados.anexos,
   });
 
   if (error) throw new Error(traduzirErro(error.message));
@@ -238,6 +253,7 @@ export async function mudarStatus(dados: DadosMudancaStatus) {
       tipo: "nota",
       conteudo: dados.observacao,
       tempo_gasto_minutos: 0,
+      anexos: [],
     });
   }
 }
@@ -273,6 +289,7 @@ export async function concluirAtendimento(dados: DadosConclusao) {
       tipo: "nota",
       conteudo: `Fechamento: ${dados.solucao}`,
       tempo_gasto_minutos: dados.tempo_gasto_minutos,
+      anexos: [],
     });
   }
 }

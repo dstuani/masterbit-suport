@@ -14,6 +14,7 @@ import {
 import { formatarRelativo, formatarTamanho } from "@/lib/utils";
 import { EnviarAnexosDoTopico, RemoverAnexoDoTopico } from "../anexos";
 import { CaixaDeComentario, LinhaDoTempo } from "../comentarios";
+import { ControleDeProgresso } from "../progresso";
 import { SeletorDeStatus } from "../status";
 
 export default async function TopicoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +49,17 @@ export default async function TopicoPage({ params }: { params: Promise<{ id: str
         </div>
         <SeletorDeStatus topicoId={id} statusAtual={topico.status} />
       </div>
+
+      <Card className="mb-4">
+        <CardContent className="p-5">
+          {/* key: ao concluir, o servidor leva o progresso a 100 e o controle precisa remontar. */}
+          <ControleDeProgresso
+            key={topico.progresso}
+            topicoId={id}
+            progressoAtual={topico.progresso}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">

@@ -22,8 +22,26 @@ import {
 import { z } from "zod";
 
 import { atribuicaoSchema } from "@/lib/schemas/equipe";
-import { enviarAnexo, removerAnexo } from "@/lib/services/anexos";
+import { enviarAnexo, enviarAnexoBruto, removerAnexo } from "@/lib/services/anexos";
 import { atribuirAtendimento } from "@/lib/services/equipe";
+
+type ResultadoDeAnexo = EstadoFormulario & { anexo?: { id: string; nome: string } };
+
+/** Sobe o arquivo sem criar entrada própria na timeline — a nota junto dele é quem cria. */
+export async function prepararAnexoAction(formData: FormData): Promise<ResultadoDeAnexo> {
+  const atendimentoId = z.uuid().safeParse(formData.get("atendimento_id"));
+  const arquivo = formData.get("arquivo");
+
+  if (!atendimentoId.success) return { erro: "Atendimento inválido." };
+  if (!(arquivo instanceof File)) return { erro: "Nenhum arquivo recebido." };
+
+  try {
+    const anexo = await enviarAnexoBruto(atendimentoId.data, arquivo);
+    return { erro: null, anexo };
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+}
 
 export async function enviarAnexoAction(formData: FormData): Promise<EstadoFormulario> {
   const atendimentoId = z.uuid().safeParse(formData.get("atendimento_id"));

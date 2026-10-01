@@ -74,7 +74,11 @@ export const TIPO_INTERACAO = [
 
 export const atendimentoSchema = z.object({
   cliente_id: z.uuid("Selecione o cliente"),
-  titulo: z.string().trim().min(3, "Descreva o assunto em poucas palavras"),
+  titulo: z
+    .string()
+    .trim()
+    .min(3, "Descreva o assunto em poucas palavras")
+    .transform((v) => v.toUpperCase()),
   categoria_id: uuidOpcional,
   subcategoria_id: uuidOpcional,
   filial_id: uuidOpcional,
@@ -91,11 +95,35 @@ export type DadosAtendimento = z.infer<typeof atendimentoSchema>;
 
 // ─── Interação ───────────────────────────────────────────────────────────────
 
+// Anexos vêm como JSON num campo oculto (já enviados antes do submit da nota) —
+// tolera ausência ou lixo em vez de rejeitar a nota inteira por causa disso.
+const anexosDaInteracao = z
+  .string()
+  .trim()
+  .optional()
+  .transform((valor): { id: string; nome: string }[] => {
+    if (!valor) return [];
+    try {
+      const dados: unknown = JSON.parse(valor);
+      if (!Array.isArray(dados)) return [];
+      return dados.filter(
+        (item): item is { id: string; nome: string } =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as { id?: unknown }).id === "string" &&
+          typeof (item as { nome?: unknown }).nome === "string",
+      );
+    } catch {
+      return [];
+    }
+  });
+
 export const interacaoSchema = z.object({
   atendimento_id: z.uuid(),
   tipo: z.enum(TIPO_INTERACAO),
   conteudo: z.string().trim().min(1, "Escreva o que foi feito"),
   tempo_gasto_minutos: minutos,
+  anexos: anexosDaInteracao,
 });
 
 export type DadosInteracao = z.infer<typeof interacaoSchema>;
@@ -139,7 +167,11 @@ export type DadosConclusao = z.infer<typeof conclusaoSchema>;
 
 export const tituloSchema = z.object({
   atendimento_id: z.uuid(),
-  titulo: z.string().trim().min(3, "Descreva o assunto em poucas palavras"),
+  titulo: z
+    .string()
+    .trim()
+    .min(3, "Descreva o assunto em poucas palavras")
+    .transform((v) => v.toUpperCase()),
 });
 
 export type DadosTitulo = z.infer<typeof tituloSchema>;

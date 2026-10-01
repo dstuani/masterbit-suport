@@ -5,8 +5,13 @@ export const metadata = { title: "Entrar" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ de?: string }>;
+  searchParams: Promise<{ de?: string; motivo?: string }>;
 }) {
-  const { de } = await searchParams;
-  return <FormularioLogin de={de ?? ""} />;
+  const { de, motivo } = await searchParams;
+  return (
+    <FormularioLogin
+      de={de ?? ""}
+      aviso={motivo === "inativo" ? "Sua conta foi desativada. Fale com o administrador do sistema." : null}
+    />
+  );
 }

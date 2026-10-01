@@ -5,7 +5,7 @@ import { Paperclip, Trash2 } from "lucide-react";
 
 import { enviarAnexoAction, removerAnexoAction } from "../actions";
 import { Button } from "@/components/ui/button";
-import { ACCEPT_DO_INPUT, TAMANHO_MAXIMO_BYTES } from "@/lib/anexos";
+import { ACCEPT_DO_INPUT, TAMANHO_MAXIMO_BYTES, nomearArquivoDePrint } from "@/lib/anexos";
 import { formatarTamanho } from "@/lib/utils";
 
 function Erro({ texto }: { texto: string | null }) {
@@ -15,16 +15,6 @@ function Erro({ texto }: { texto: string | null }) {
       {texto}
     </p>
   );
-}
-
-/** Print colado do clipboard chega como "image.png"; um nome com data ajuda a achar depois. */
-function nomearPrint(arquivo: File): File {
-  if (arquivo.name && arquivo.name !== "image.png") return arquivo;
-  const agora = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const carimbo = `${agora.getFullYear()}${pad(agora.getMonth() + 1)}${pad(agora.getDate())}-${pad(agora.getHours())}${pad(agora.getMinutes())}${pad(agora.getSeconds())}`;
-  const extensao = arquivo.type === "image/jpeg" ? "jpg" : "png";
-  return new File([arquivo], `print-${carimbo}.${extensao}`, { type: arquivo.type });
 }
 
 /**
@@ -48,7 +38,7 @@ export function EnviarAnexos({ atendimentoId }: { atendimentoId: string }) {
       const falhas: string[] = [];
 
       for (const original of arquivos) {
-        const arquivo = nomearPrint(original);
+        const arquivo = nomearArquivoDePrint(original);
         if (arquivo.size > TAMANHO_MAXIMO_BYTES) {
           falhas.push(`${arquivo.name}: passa de 10 MB (${formatarTamanho(arquivo.size)}).`);
           continue;

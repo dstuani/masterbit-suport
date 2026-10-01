@@ -945,6 +945,7 @@ export type Database = {
           ordem: number;
           created_at: string;
           updated_at: string;
+          progresso: number;
         };
         Insert: {
           id?: string;
@@ -957,6 +958,7 @@ export type Database = {
           ordem?: number;
           created_at?: string;
           updated_at?: string;
+          progresso?: number;
         };
         Update: {
           id?: string;
@@ -969,6 +971,7 @@ export type Database = {
           ordem?: number;
           created_at?: string;
           updated_at?: string;
+          progresso?: number;
         };
         Relationships: [
           {

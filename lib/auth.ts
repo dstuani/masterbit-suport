@@ -40,7 +40,13 @@ export const obterPerfil = cache(async (): Promise<Perfil | null> => {
   return data ?? null;
 });
 
-/** Usa em páginas protegidas: devolve o usuário ou redireciona para o login. */
+/**
+ * Usa em páginas protegidas: devolve o usuário ou redireciona para o login.
+ *
+ * Sessão válida não basta: usuário desativado (ou sem perfil) é deslogado. O RLS
+ * já esconde tudo dele — inclusive o próprio perfil, por isso `perfil` vem nulo —,
+ * e sem este desvio ele veria um sistema vazio em vez de saber o que houve.
+ */
 export async function exigirUsuario() {
   const user = await obterUsuario();
 
@@ -50,6 +56,10 @@ export async function exigirUsuario() {
   }
 
   if (!user) redirect("/login");
+
+  const perfil = await obterPerfil();
+  if (!perfil?.ativo) redirect("/sair?motivo=inativo");
+
   return user;
 }
 

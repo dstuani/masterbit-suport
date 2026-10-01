@@ -5,10 +5,16 @@ import { z } from "zod";
 
 import { erroDeValidacao, mensagemDoErro, type EstadoFormulario } from "@/lib/forms";
 import { dadosDoFormulario } from "@/lib/schemas/cadastros";
-import { comentarioSchema, statusTopicoSchema, topicoSchema } from "@/lib/schemas/consultoria";
+import {
+  comentarioSchema,
+  progressoTopicoSchema,
+  statusTopicoSchema,
+  topicoSchema,
+} from "@/lib/schemas/consultoria";
 import {
   criarTopico,
   enviarAnexoTopico,
+  mudarProgressoTopico,
   mudarStatusTopico,
   registrarComentario,
   removerAnexoTopico,
@@ -36,6 +42,15 @@ export async function mudarStatusTopicoAction(formData: FormData): Promise<void>
   if (!analise.success) return;
 
   await mudarStatusTopico(analise.data);
+  revalidatePath("/consultoria");
+  revalidatePath(`/consultoria/${analise.data.id}`);
+}
+
+export async function mudarProgressoTopicoAction(formData: FormData): Promise<void> {
+  const analise = progressoTopicoSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return;
+
+  await mudarProgressoTopico(analise.data);
   revalidatePath("/consultoria");
   revalidatePath(`/consultoria/${analise.data.id}`);
 }

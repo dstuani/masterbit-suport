@@ -4,9 +4,6 @@ import type { Database } from "@/lib/types/database";
 
 type LinhaLista = Database["public"]["Views"]["atendimentos_lista"]["Row"];
 
-/** Quantos dias sem movimento para um atendimento contar como parado. */
-export const DIAS_PARA_PARADO = 3;
-
 export type ResumoDashboard = {
   abertos: number;
   emAndamento: number;
@@ -14,7 +11,6 @@ export type ResumoDashboard = {
   resolvidosNoMes: number;
   pendenciasVencidas: number;
   minutosNoMes: number;
-  parados: LinhaLista[];
   aguardandoRetorno: LinhaLista[];
   recentes: LinhaLista[];
   /** Todos os atendimentos, de qualquer status: distingue "sistema vazio" de "nada pendente". */
@@ -32,9 +28,6 @@ export async function obterResumo(): Promise<ResumoDashboard> {
 
   const agora = new Date();
   const inicioDoMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
-  const limiteParado = new Date(
-    agora.getTime() - DIAS_PARA_PARADO * 24 * 60 * 60 * 1000,
-  ).toISOString();
 
   const [
     abertos,
@@ -43,7 +36,6 @@ export async function obterResumo(): Promise<ResumoDashboard> {
     resolvidosNoMes,
     pendenciasVencidas,
     tempoDoMes,
-    parados,
     aguardandoRetorno,
     recentes,
     totalDeAtendimentos,
@@ -78,16 +70,6 @@ export async function obterResumo(): Promise<ResumoDashboard> {
       .select("tempo_gasto_minutos")
       .gte("iniciado_em", inicioDoMes),
 
-    // Parados: em aberto e sem movimento há dias. É a lista que evita o
-    // atendimento esquecido — a razão de o sistema existir.
-    supabase
-      .from("atendimentos_lista")
-      .select("*")
-      .in("status", STATUS_EM_ABERTO)
-      .lt("updated_at", limiteParado)
-      .order("updated_at", { ascending: true })
-      .limit(8),
-
     supabase
       .from("atendimentos_lista")
       .select("*")
@@ -118,7 +100,6 @@ export async function obterResumo(): Promise<ResumoDashboard> {
     resolvidosNoMes: resolvidosNoMes.count ?? 0,
     pendenciasVencidas: pendenciasVencidas.count ?? 0,
     minutosNoMes,
-    parados: parados.data ?? [],
     aguardandoRetorno: aguardandoRetorno.data ?? [],
     recentes: recentes.data ?? [],
     totalDeAtendimentos: totalDeAtendimentos.count ?? 0,

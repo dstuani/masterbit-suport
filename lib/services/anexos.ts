@@ -1,11 +1,13 @@
-import { exigirPermissaoDeEscrita } from "@/lib/auth";
+import { exigirPermissaoDeEscrita, type Perfil } from "@/lib/auth";
 import {
   EXTENSOES_DE_IMAGEM,
   TAMANHO_MAXIMO_BYTES,
   TIPOS_DE_ANEXO,
   assinaturaConfere,
+  ehImagem,
   extensaoDe,
   limparNomeDoAnexo,
+  type RefDeAnexo,
 } from "@/lib/anexos";
 import { traduzirErro } from "@/lib/services/erros";
 import { criarClienteServidor } from "@/lib/supabase/server";
@@ -16,10 +18,14 @@ const VALIDADE_DA_URL_SEGUNDOS = 60 * 60;
 
 export type Anexo = Tabelas<"atendimento_anexos"> & { profiles: { nome: string } | null };
 export type AnexoComUrl = Anexo & { url: string | null };
+export type AnexoResolvido = RefDeAnexo & { url: string | null; tipoMime: string };
 
-export async function enviarAnexo(atendimentoId: string, arquivo: File): Promise<void> {
-  const perfil = await exigirPermissaoDeEscrita();
-
+/** Validação, upload e registro do arquivo — sem tocar a timeline. */
+async function processarUpload(
+  perfil: Perfil,
+  atendimentoId: string,
+  arquivo: File,
+): Promise<{ id: string; nome: string }> {
   const nome = limparNomeDoAnexo(arquivo.name);
   const extensao = extensaoDe(nome);
   const tipoMime = TIPOS_DE_ANEXO[extensao];
@@ -74,6 +80,28 @@ export async function enviarAnexo(atendimentoId: string, arquivo: File): Promise
     throw new Error("Não foi possível enviar o arquivo. Tente novamente.");
   }
 
+  return { id, nome };
+}
+
+/**
+ * Envia um arquivo já amarrado a uma interação que o chamador vai criar (ex.: a
+ * caixa de "o que foi feito", que junta texto e imagem num único registro da
+ * timeline). Não cria interação própria — quem chama decide o que fazer com o id.
+ */
+export async function enviarAnexoBruto(
+  atendimentoId: string,
+  arquivo: File,
+): Promise<{ id: string; nome: string }> {
+  const perfil = await exigirPermissaoDeEscrita();
+  return processarUpload(perfil, atendimentoId, arquivo);
+}
+
+/** Envio avulso (o card "Anexos"): cria sua própria entrada "Anexou X" na timeline. */
+export async function enviarAnexo(atendimentoId: string, arquivo: File): Promise<void> {
+  const perfil = await exigirPermissaoDeEscrita();
+  const { id, nome } = await processarUpload(perfil, atendimentoId, arquivo);
+
+  const supabase = await criarClienteServidor();
   await supabase.from("atendimento_interacoes").insert({
     org_id: perfil.org_id,
     atendimento_id: atendimentoId,
@@ -82,6 +110,41 @@ export async function enviarAnexo(atendimentoId: string, arquivo: File): Promise
     conteudo: `Anexou ${nome}`,
     anexos: [{ id, nome }],
   });
+}
+
+/** Resolve referências {id, nome} guardadas no jsonb da timeline para exibição, com URL assinada. */
+export async function resolverAnexosCitados(refs: RefDeAnexo[]): Promise<Map<string, AnexoResolvido>> {
+  const resultado = new Map<string, AnexoResolvido>();
+  const ids = [...new Set(refs.map((r) => r.id))];
+  if (ids.length === 0) return resultado;
+
+  const supabase = await criarClienteServidor();
+  const { data } = await supabase
+    .from("atendimento_anexos")
+    .select("id, caminho, tipo_mime, nome_original")
+    .in("id", ids)
+    .is("removido_em", null);
+
+  const bucket = supabase.storage.from(BUCKET);
+
+  await Promise.all(
+    (data ?? []).map(async (anexo) => {
+      const imagem = ehImagem(anexo.tipo_mime);
+      const { data: assinada } = await bucket.createSignedUrl(
+        anexo.caminho,
+        VALIDADE_DA_URL_SEGUNDOS,
+        imagem ? undefined : { download: anexo.nome_original },
+      );
+      resultado.set(anexo.id, {
+        id: anexo.id,
+        nome: anexo.nome_original,
+        url: assinada?.signedUrl ?? null,
+        tipoMime: anexo.tipo_mime,
+      });
+    }),
+  );
+
+  return resultado;
 }
 
 export async function removerAnexo(anexoId: string): Promise<{ atendimentoId: string }> {

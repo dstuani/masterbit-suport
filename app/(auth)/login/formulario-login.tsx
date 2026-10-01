@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 
 const estadoInicial: EstadoLogin = { erro: null };
 
-export function FormularioLogin({ de }: { de: string }) {
+export function FormularioLogin({ de, aviso }: { de: string; aviso: string | null }) {
   const [estado, acao, pendente] = useActionState(entrar, estadoInicial);
 
   return (
@@ -38,9 +38,9 @@ export function FormularioLogin({ de }: { de: string }) {
             />
           </div>
 
-          {estado.erro ? (
+          {(estado.erro ?? aviso) ? (
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-              {estado.erro}
+              {estado.erro ?? aviso}
             </p>
           ) : null}
 
