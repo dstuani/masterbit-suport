@@ -68,9 +68,8 @@ export type UsuarioCriado = { id: string; senhaTemporaria: string };
  *
  * Usa a service role key (via criarClienteAdmin) só para o insert em auth.users —
  * é o único jeito de criar login sem a pessoa se autocadastrar. O profile nasce
- * pelo trigger de cadastro (tratar_novo_usuario), sempre como técnico; se o papel
- * pedido for outro, ajusta logo em seguida com a sessão normal do owner, para o
- * RLS e o trigger de proteção de papel continuarem valendo nessa parte.
+ * pelo trigger de cadastro (tratar_novo_usuario), desativado e como técnico; o
+ * ativo e o papel pedido são aplicados logo em seguida (ver abaixo).
  *
  * A senha é temporária de propósito: não há como enviar e-mail sem configurar um
  * servidor de e-mail (SMTP) no Supabase, então o owner repassa por fora e a pessoa
@@ -90,20 +89,32 @@ export async function criarUsuario(dados: DadosCriarUsuario): Promise<UsuarioCri
   });
 
   if (error) {
-    if (error.message.toLowerCase().includes("already")) {
+    const mensagem = error.message.toLowerCase();
+    if (mensagem.includes("already")) {
       throw new Error("Já existe um usuário com este e-mail.");
+    }
+    if (mensagem.includes("invalid api key") || mensagem.includes("jwt")) {
+      throw new Error(
+        "O Supabase recusou a chave de administrador (SUPABASE_SERVICE_ROLE_KEY). Confira se é a Secret key deste projeto e se não foi revogada.",
+      );
     }
     throw new Error(error.message);
   }
 
-  if (dados.role !== "tecnico") {
-    const supabase = await criarClienteServidor();
-    const { error: erroPapel } = await supabase
-      .from("profiles")
-      .update({ role: dados.role })
-      .eq("id", data.user.id);
+  // O trigger de cadastro cria todo usuário novo desativado e como técnico (defesa
+  // contra o cadastro público). Aqui foi o owner quem criou, então ativa e aplica o
+  // papel pedido — com a sessão normal dele, para o RLS e o trigger de proteção de
+  // papel continuarem valendo nessa parte.
+  const supabase = await criarClienteServidor();
+  const { error: erroAtivacao } = await supabase
+    .from("profiles")
+    .update({ role: dados.role, ativo: true })
+    .eq("id", data.user.id);
 
-    if (erroPapel) throw new Error(traduzirErro(erroPapel.message));
+  if (erroAtivacao) {
+    throw new Error(
+      `Usuário criado, mas não foi possível ativá-lo (${traduzirErro(erroAtivacao.message)}). Ative-o na lista abaixo.`,
+    );
   }
 
   return { id: data.user.id, senhaTemporaria };

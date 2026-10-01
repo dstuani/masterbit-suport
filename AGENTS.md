@@ -89,8 +89,9 @@ devolve erro 500 de propósito.
 
 **Primeiro acesso:** não há tela de cadastro. Crie o usuário no painel do Supabase
 (Authentication → Users → Add user, marcando *Auto Confirm*). O primeiro usuário vira
-`owner` e ganha a organização. Os seguintes entram como `tecnico` (ou crie-os por
-Configurações → Equipe, se a service role key estiver configurada).
+`owner` e ganha a organização. Os seguintes entram como `tecnico` **desativado** e só
+acessam depois que o owner clica em Ativar em Configurações → Equipe. Criados pela
+própria tela Equipe (exige a service role key) já saem ativos.
 
 ### Scripts
 
@@ -100,7 +101,7 @@ Configurações → Equipe, se a service role key estiver configurada).
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e as funções do RLS (57 verificações) |
+| `npm run db:test` | testa triggers, constraints e as funções do RLS (60 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -229,8 +230,9 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
 - **Triggers do atendimento:** número `AT-AAAA-NNNNN` automático; interação "Atendimento
   aberto" na criação; interação de mudança de status; `finalizado_em` preenchido ao
   resolver/cancelar e limpo ao reabrir; tempo das interações somado no atendimento.
-- **Novo usuário:** trigger em `auth.users` cria o `profile` (primeiro = owner, demais
-  = tecnico) e semeia 7 categorias e 28 subcategorias.
+- **Novo usuário:** trigger em `auth.users` cria o `profile` (primeiro = owner ativo;
+  demais = tecnico **inativo**, até o owner ativar) e semeia 7 categorias e 28
+  subcategorias na primeira vez.
 - **Proteção de papel:** trigger `proteger_profile` — só owner muda papel ou situação;
   a organização sempre mantém um owner ativo.
 - **Anexos:** só `removido_em` pode mudar (soft delete); caminho tem de começar pelo
@@ -332,14 +334,17 @@ português, curtos.
 
 ### Segurança (prioridade)
 
-1. **Cadastro público coloca qualquer um dentro da organização.** O trigger
-   `tratar_novo_usuario` põe todo novo usuário de `auth.users` na primeira organização,
-   como `tecnico` (com escrita). A chave pública do Supabase vai no navegador, então,
-   se o projeto aceitar cadastro público (padrão do Supabase), qualquer pessoa pode se
-   cadastrar pela API do Auth e ler e alterar os dados dos clientes. **Mantenha
-   desligado** "Allow new users to sign up" no painel do Supabase (Authentication →
-   Sign In / Providers). Criar usuário por Configurações → Equipe continua funcionando,
-   porque usa a API admin.
+1. **Cadastro público.** A chave pública do Supabase vai no navegador, então, se o
+   projeto aceitar cadastro (padrão do Supabase), qualquer pessoa cria usuário pela API
+   do Auth, e o trigger `tratar_novo_usuario` a põe na organização. Duas camadas:
+   - **Painel (configuração, não código):** manter desligado "Allow new users to sign
+     up" em Authentication → Sign In / Providers. Criar usuário pela tela Equipe
+     continua funcionando, porque usa a API admin.
+   - **Banco — desde 01/10/2026, não desfazer:** usuário novo nasce `ativo = false`
+     (migration `20261001130000`), e por isso não vê nada até o owner ativar. A tela
+     Equipe ativa logo após criar (`criarUsuario` em `lib/services/equipe.ts`). Se
+     alguém mudar o trigger para nascer ativo, o cadastro público volta a dar acesso
+     de técnico a desconhecidos.
 2. **Usuário desativado — corrigido em 01/10/2026, não desfazer.** `org_atual()` e
    `papel_atual()` filtram `ativo` (migration `20261001120000`); para um desativado
    devolvem NULL e nenhuma policy casa, nem pela API direta. No app, `exigirUsuario()`
@@ -356,8 +361,8 @@ português, curtos.
 ### Banco e dados
 
 5. **`supabase/schema-completo.sql` está desatualizado** (gerado em 08/09/2026). Faltam
-   as 7 migrations seguintes, inclusive a proteção de papel e o bloqueio de usuário
-   desativado. Não use para montar banco
+   as 8 migrations seguintes, inclusive a proteção de papel, o bloqueio de usuário
+   desativado e o usuário novo nascendo inativo. Não use para montar banco
    novo — use `npm run db:push`.
 6. **View `atendimentos_lista`:** precisa manter `security_invoker = true` (sem isso
    ela ignora o RLS e vaza dados entre organizações). Coluna nova em `atendimentos` só

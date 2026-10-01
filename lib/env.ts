@@ -22,8 +22,19 @@ const ehPlaceholder = (valor: string) =>
 
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
+// Chave de servidor válida tem um de dois formatos: a "Secret key" nova
+// (sb_secret_…) ou a service_role legada (JWT, começa com eyJ). Conferir o formato
+// pega o erro mais comum — colar a chave pública ou um texto qualquer — antes de o
+// Supabase responder um "Invalid API key" sem contexto.
+const formatoDeChaveSecreta = (valor: string) =>
+  valor.startsWith("sb_secret_") || valor.startsWith("eyJ");
+
 export const supabaseConfigurado = !ehPlaceholder(url) && !ehPlaceholder(anonKey);
-export const serviceRoleConfigurado = !ehPlaceholder(serviceRoleKey);
+
+/** Há algo preenchido na variável — válido ou não. */
+export const serviceRolePreenchida = !ehPlaceholder(serviceRoleKey);
+export const serviceRoleConfigurado =
+  serviceRolePreenchida && formatoDeChaveSecreta(serviceRoleKey);
 
 export const env = {
   supabaseUrl: url,
@@ -51,7 +62,7 @@ export function exigirServiceRole() {
   const { url } = exigirSupabase();
   if (!serviceRoleConfigurado) {
     throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY não configurada. Copie em Project Settings → API → service_role no painel do Supabase e cole em .env.local (veja .env.example) para criar usuários pelo sistema.",
+      "SUPABASE_SERVICE_ROLE_KEY ausente ou em formato inválido. Copie a Secret key (sb_secret_…) em Project Settings → API Keys no painel do Supabase e cole em .env.local (veja .env.example) para criar usuários pelo sistema.",
     );
   }
   return { url, serviceRoleKey: env.serviceRoleKey };

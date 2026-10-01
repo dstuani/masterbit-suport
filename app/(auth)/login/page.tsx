@@ -11,7 +11,11 @@ export default async function LoginPage({
   return (
     <FormularioLogin
       de={de ?? ""}
-      aviso={motivo === "inativo" ? "Sua conta foi desativada. Fale com o administrador do sistema." : null}
+      aviso={
+        motivo === "inativo"
+          ? "Sua conta está desativada ou aguardando liberação. Fale com o administrador do sistema."
+          : null
+      }
     />
   );
 }

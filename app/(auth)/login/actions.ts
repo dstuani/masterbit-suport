@@ -69,7 +69,9 @@ export async function entrar(_estado: EstadoLogin, formData: FormData): Promise<
 
   if (!perfil?.ativo) {
     await supabase.auth.signOut();
-    return { erro: "Esta conta está desativada. Fale com o administrador do sistema." };
+    return {
+      erro: "Esta conta está desativada ou aguardando liberação. Fale com o administrador do sistema.",
+    };
   }
 
   redirect(destinoSeguro(analise.data.de));

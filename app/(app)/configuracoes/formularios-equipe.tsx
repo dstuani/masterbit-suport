@@ -249,7 +249,7 @@ export function ControlesDoMembro({
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="ativo" value={ativo ? "false" : "true"} />
           <Button type="submit" size="sm" variant="outline" disabled={pendenteSituacao}>
-            {ativo ? "Desativar" : "Reativar"}
+            {ativo ? "Desativar" : "Ativar"}
           </Button>
         </form>
       </div>

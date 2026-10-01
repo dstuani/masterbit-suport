@@ -64,10 +64,11 @@ async function main() {
 
   // ── Provisionamento: o cadastro em auth.users cria profile e organização ──
   await db.exec(`insert into auth.users (email) values ('suporte@exemplo.com.br');`);
-  const { rows: perfis } = await db.query(`select p.id, p.role, p.org_id, o.nome as org
+  const { rows: perfis } = await db.query(`select p.id, p.role, p.ativo, p.org_id, o.nome as org
                                              from profiles p join organizacoes o on o.id = p.org_id`);
   verificar("cadastro cria profile automaticamente", perfis.length === 1);
   verificar("primeiro usuário vira owner", perfis[0]?.role === "owner");
+  verificar("primeiro usuário já nasce ativo", perfis[0]?.ativo === true);
   verificar("organização é criada junto", perfis[0]?.org === "Minha organização");
 
   const { rows: catalogo } = await db.query(
@@ -87,11 +88,20 @@ async function main() {
   const { rows: segundo } = await db.query(
     `insert into auth.users (email) values ('ajudante@exemplo.com.br') returning id`,
   );
-  const { rows: perfil2 } = await db.query(`select role, org_id from profiles where id = $1`, [
+  const { rows: perfil2 } = await db.query(`select role, ativo, org_id from profiles where id = $1`, [
     segundo[0].id,
   ]);
   verificar("segundo usuário entra como tecnico", perfil2[0]?.role === "tecnico");
   verificar("segundo usuário fica na mesma organização", perfil2[0]?.org_id === orgId);
+  verificar(
+    "segundo usuário nasce desativado (autocadastro não ganha acesso)",
+    perfil2[0]?.ativo === false,
+  );
+
+  // O owner ativa — é o que a tela Equipe faz ao criar ou ao clicar em Ativar.
+  await db.exec(`update profiles set ativo = true where id = '${segundo[0].id}'`);
+  const { rows: ativado } = await db.query(`select ativo from profiles where id = $1`, [segundo[0].id]);
+  verificar("owner ativa o usuário novo", ativado[0]?.ativo === true);
 
   // ── Cadastros ──
   const { rows: cli } = await db.query(

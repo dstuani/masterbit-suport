@@ -5,7 +5,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { obterPerfil } from "@/lib/auth";
-import { serviceRoleConfigurado, supabaseConfigurado } from "@/lib/env";
+import { serviceRoleConfigurado, serviceRolePreenchida, supabaseConfigurado } from "@/lib/env";
 import { listarCategorias, listarSistemas } from "@/lib/services/catalogo";
 import { listarAuditoria, listarEquipe, TABELAS_AUDITADAS } from "@/lib/services/equipe";
 import { formatarData, formatarDataHora } from "@/lib/utils";
@@ -345,13 +345,20 @@ export default async function ConfiguracoesPage({
           ) : (
             <Card className="border-amber-300 dark:border-amber-800">
               <CardContent className="p-5 text-sm">
-                <p className="font-medium">Criar usuário pelo sistema ainda não está disponível.</p>
+                <p className="font-medium">
+                  {serviceRolePreenchida
+                    ? "A chave de administrador em .env.local não é uma chave secreta do Supabase."
+                    : "Criar usuário pelo sistema ainda não está disponível."}
+                </p>
                 <p className="mt-1 text-muted-foreground">
-                  Falta configurar a <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> no
-                  servidor (painel do Supabase → Project Settings → API → service_role, colada em
-                  <code className="font-mono"> .env.local</code>). Até lá, crie o usuário em
-                  Authentication → Users no painel do Supabase — ele já entra automaticamente como
-                  Técnico.
+                  No painel do Supabase, abra Project Settings → API Keys e copie a{" "}
+                  <strong>Secret key</strong> (começa com{" "}
+                  <code className="font-mono">sb_secret_</code>; não use a Publishable key). Cole
+                  em <code className="font-mono">.env.local</code>, na variável{" "}
+                  <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code>, e recarregue a
+                  página. Até lá, crie o usuário em Authentication → Users no painel do Supabase —
+                  ele aparece aqui como Técnico inativo, e só acessa o sistema depois que você
+                  clicar em Ativar.
                 </p>
               </CardContent>
             </Card>
@@ -359,7 +366,9 @@ export default async function ConfiguracoesPage({
 
           <p className="text-xs text-muted-foreground">
             Owner gerencia papéis; Visualizador só consulta. A organização sempre mantém ao menos
-            um owner ativo.
+            um owner ativo. Usuário criado fora desta tela (painel do Supabase ou
+            autocadastro) chega inativo e só acessa depois de ativado aqui — se aparecer
+            alguém que você não reconhece, deixe inativo.
           </p>
         </div>
       ) : null}
