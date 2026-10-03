@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PRIORIDADES, STATUS_ATENDIMENTO } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarAtendimentos, opcoesDeFormulario } from "@/lib/services/atendimentos";
 import { listarResponsaveis } from "@/lib/services/equipe";
@@ -49,7 +50,7 @@ export default async function AtendimentosPage({
   const statusEfetivo = abriuPeloMenu ? "abertos" : (params.status ?? "");
   const paramsEfetivos = abriuPeloMenu ? { status: "abertos" } : params;
 
-  const [{ itens, total, paginas }, opcoes, responsaveis] = await Promise.all([
+  const [{ itens, total, paginas }, opcoes, responsaveis, podeEditar] = await Promise.all([
     listarAtendimentos({
       busca: params.busca,
       status: (statusEfetivo === "todos" ? undefined : statusEfetivo || undefined) as never,
@@ -61,7 +62,9 @@ export default async function AtendimentosPage({
     }),
     opcoesDeFormulario(),
     listarResponsaveis(),
+    podeEscreverAgora(),
   ]);
+  const acoesPermitidas = podeEditar ? acoes : null;
 
   const soEmAberto =
     statusEfetivo === "abertos" &&
@@ -85,7 +88,7 @@ export default async function AtendimentosPage({
       <PageHeader
         titulo="Atendimentos"
         descricao="Registro de tudo que foi tratado com cada cliente."
-        acoes={acoes}
+        acoes={acoesPermitidas}
       />
 
       <FiltrosAtendimentos
@@ -129,7 +132,7 @@ export default async function AtendimentosPage({
                 )}
               </p>
             </div>
-            {!temFiltro ? acoes : null}
+            {!temFiltro ? acoesPermitidas : null}
           </CardContent>
         </Card>
       ) : (

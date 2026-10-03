@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TIPOS_EVENTO } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarEventos, type EventoComContexto } from "@/lib/services/agenda";
 import { formatarDataHora, cn } from "@/lib/utils";
@@ -56,11 +57,14 @@ export default async function AgendaPage({
   }
   // "todos" não filtra por data
 
-  const eventos = await listarEventos({
-    de: filtrosDe,
-    ate: filtrosAte,
-    status: vista === "proximos" ? "pendentes" : undefined,
-  });
+  const [eventos, podeEditar] = await Promise.all([
+    listarEventos({
+      de: filtrosDe,
+      ate: filtrosAte,
+      status: vista === "proximos" ? "pendentes" : undefined,
+    }),
+    podeEscreverAgora(),
+  ]);
 
   // "Próximos" olha para frente (o mais cedo primeiro); "Este mês" e "Todos" são
   // histórico, e o que interessa é o mais recente no topo.
@@ -76,12 +80,14 @@ export default async function AgendaPage({
         titulo="Agenda"
         descricao="Retornos, visitas e lembretes programados."
         acoes={
-          <Button asChild size="sm">
-            <Link href="/agenda/novo">
-              <Plus />
-              Novo evento
-            </Link>
-          </Button>
+          podeEditar ? (
+            <Button asChild size="sm">
+              <Link href="/agenda/novo">
+                <Plus />
+                Novo evento
+              </Link>
+            </Button>
+          ) : null
         }
       />
 

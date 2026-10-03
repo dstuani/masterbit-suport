@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { obterPerfil } from "@/lib/auth";
+import { obterPerfil, podeEscrever } from "@/lib/auth";
 import { serviceRoleConfigurado, serviceRolePreenchida, supabaseConfigurado } from "@/lib/env";
 import { listarCategorias, listarSistemas } from "@/lib/services/catalogo";
 import { listarAuditoria, listarEquipe, TABELAS_AUDITADAS } from "@/lib/services/equipe";
@@ -102,6 +102,7 @@ export default async function ConfiguracoesPage({
 
   const perfil = await obterPerfil();
   const ehOwner = perfil?.role === "owner";
+  const podeEditar = perfil !== null && podeEscrever(perfil);
   const abasVisiveis = ABAS.filter((a) => !a.soOwner || ehOwner);
   const aba = abasVisiveis.some((a) => a.chave === abaParam) ? abaParam! : "sistemas";
 
@@ -175,14 +176,16 @@ export default async function ConfiguracoesPage({
             )}
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Adicionar sistema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormularioSistema />
-            </CardContent>
-          </Card>
+          {podeEditar ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Adicionar sistema</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormularioSistema />
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       ) : null}
 
@@ -225,16 +228,18 @@ export default async function ConfiguracoesPage({
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Adicionar categoria</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormularioCategoria />
-            </CardContent>
-          </Card>
+          {podeEditar ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Adicionar categoria</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormularioCategoria />
+              </CardContent>
+            </Card>
+          ) : null}
 
-          {categorias.length > 0 ? (
+          {podeEditar && categorias.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle>Adicionar subcategoria</CardTitle>

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_ATENDIMENTO, TIPOS_EVENTO } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarEventos, type EventoComContexto } from "@/lib/services/agenda";
 import { obterResumo, type ResumoDashboard } from "@/lib/services/dashboard";
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
   const fimDaJanela = new Date(inicioDeHoje);
   fimDaJanela.setDate(fimDaJanela.getDate() + DIAS_DA_AGENDA_NO_DASHBOARD);
 
-  const [resumo, pendencias, eventos] = await Promise.all([
+  const [resumo, pendencias, eventos, podeEditar] = await Promise.all([
     obterResumo(),
     listarPendencias({ status: "abertas", limite: LIMITE_DE_PENDENCIAS_NO_DASHBOARD }),
     listarEventos({
@@ -59,21 +60,24 @@ export default async function DashboardPage() {
       de: inicioDeHoje.toISOString(),
       ate: fimDaJanela.toISOString(),
     }),
+    podeEscreverAgora(),
   ]);
+
+  const botaoNovo = podeEditar ? (
+    <Button asChild size="sm">
+      <Link href="/atendimentos/novo">
+        <Plus />
+        Novo atendimento
+      </Link>
+    </Button>
+  ) : null;
 
   return (
     <>
       <PageHeader
         titulo="Dashboard"
         descricao="Visão do dia: o que está aberto, parado e vencendo."
-        acoes={
-          <Button asChild size="sm">
-            <Link href="/atendimentos/novo">
-              <Plus />
-              Novo atendimento
-            </Link>
-          </Button>
-        }
+        acoes={botaoNovo}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -114,12 +118,7 @@ export default async function DashboardPage() {
                 Assim que você registrar o primeiro, os números e as listas aparecem aqui.
               </p>
             </div>
-            <Button asChild size="sm">
-              <Link href="/atendimentos/novo">
-                <Plus />
-                Novo atendimento
-              </Link>
-            </Button>
+            {botaoNovo}
           </CardContent>
         </Card>
       ) : (

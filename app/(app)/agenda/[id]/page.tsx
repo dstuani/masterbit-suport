@@ -6,6 +6,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TIPOS_EVENTO } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { obterEvento } from "@/lib/services/agenda";
 import { formatarDataHora, formatarRelativo } from "@/lib/utils";
@@ -34,10 +35,12 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   if (!supabaseConfigurado) return <AvisoSupabase />;
 
-  const evento = await obterEvento(id);
+  const [evento, podeEditar] = await Promise.all([obterEvento(id), podeEscreverAgora()]);
   if (!evento) notFound();
 
-  const pendente = evento.status === "agendado" || evento.status === "confirmado";
+  // Sem permissão de escrita, o evento é só leitura: some realizar/remarcar/cancelar.
+  const pendente =
+    podeEditar && (evento.status === "agendado" || evento.status === "confirmado");
   const encerrado = evento.status === "realizado" || evento.status === "cancelado";
 
   return (

@@ -6,6 +6,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { STATUS_TOPICO_CONSULTORIA } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import {
   listarTopicos,
@@ -50,7 +51,10 @@ export default async function ConsultoriaPage() {
     );
   }
 
-  const topicos = await listarTopicos(projeto.id);
+  const [topicos, podeEditar] = await Promise.all([
+    listarTopicos(projeto.id),
+    podeEscreverAgora(),
+  ]);
   const concluidos = topicos.filter((t) => t.status === "concluido").length;
   const cancelados = topicos.filter((t) => t.status === "cancelado").length;
 
@@ -120,7 +124,7 @@ export default async function ConsultoriaPage() {
         </Card>
       )}
 
-      <NovoTopico projetoId={projeto.id} />
+      {podeEditar ? <NovoTopico projetoId={projeto.id} /> : null}
     </>
   );
 }

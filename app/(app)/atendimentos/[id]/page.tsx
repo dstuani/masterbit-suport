@@ -14,6 +14,7 @@ import {
   TIPOS_INTERACAO,
   type StatusAtendimento,
 } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import {
   listarInteracoes,
@@ -42,16 +43,19 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
   const atendimento = await obterAtendimento(id);
   if (!atendimento) notFound();
 
-  const [interacoes, pendencias, responsaveis, anexos] = await Promise.all([
+  const [interacoes, pendencias, responsaveis, anexos, podeEditar] = await Promise.all([
     listarInteracoes(id),
     listarPendenciasDoAtendimento(id),
     listarResponsaveis(),
     listarAnexos(id),
+    podeEscreverAgora(),
   ]);
 
   const status = STATUS_ATENDIMENTO[atendimento.status];
   const prioridade = PRIORIDADES[atendimento.prioridade];
   const encerrado = atendimento.status === "resolvido" || atendimento.status === "cancelado";
+  // Encerrado ou sem permissão de escrita: a tela vira só leitura.
+  const editavel = podeEditar && !encerrado;
   const esperando =
     atendimento.status === "aguardando_cliente" || atendimento.status === "aguardando_terceiro";
 
@@ -72,7 +76,11 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
             <Badge className={status.cor}>{status.rotulo}</Badge>
             <Badge className={prioridade.cor}>{prioridade.rotulo}</Badge>
           </div>
-          <TituloDoAtendimento atendimentoId={id} titulo={atendimento.titulo} />
+          <TituloDoAtendimento
+            atendimentoId={id}
+            titulo={atendimento.titulo}
+            podeEditar={podeEditar}
+          />
           <p className="mt-1 text-sm text-muted-foreground">
             <Link href={`/clientes/${atendimento.cliente_id}`} className="hover:underline">
               {atendimento.clientes?.razao_social}
@@ -87,7 +95,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
             <Clock className="size-4" />
             {formatarDuracao(atendimento.tempo_gasto_minutos)}
           </span>
-          {!encerrado ? (
+          {editavel ? (
             <Button asChild size="sm" variant="outline">
               <Link href={`/agenda/novo?atendimento=${id}`}>
                 <Plus className="size-3.5" />
@@ -95,7 +103,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
               </Link>
             </Button>
           ) : null}
-          {!encerrado ? <Conclusao atendimentoId={id} /> : null}
+          {editavel ? <Conclusao atendimentoId={id} /> : null}
         </div>
       </div>
 
@@ -113,7 +121,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
-          {!encerrado ? (
+          {editavel ? (
             <Card>
               <CardContent className="p-5">
                 <CaixaDeInteracao atendimentoId={id} />
@@ -158,7 +166,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
         </div>
 
         <aside className="flex flex-col gap-4">
-          {!encerrado ? (
+          {editavel ? (
             <Card>
               <CardHeader>
                 <CardTitle>Situação</CardTitle>
@@ -183,7 +191,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
               <Linha rotulo="Sistema" valor={atendimento.sistemas?.nome} />
               <Linha rotulo="Canal" valor={CANAIS[atendimento.canal]} />
               <Linha rotulo="Tipo" valor={TIPOS_ATENDIMENTO[atendimento.tipo]} />
-              {!encerrado && responsaveis.length > 1 ? (
+              {editavel && responsaveis.length > 1 ? (
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-foreground">Responsável</span>
                   <AtribuirResponsavel
@@ -246,21 +254,23 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
                           {formatarRelativo(anexo.created_at)}
                         </span>
                       </div>
-                      <RemoverAnexo anexoId={anexo.id} nome={anexo.nome_original} />
+                      {podeEditar ? (
+                        <RemoverAnexo anexoId={anexo.id} nome={anexo.nome_original} />
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="text-muted-foreground">Nenhum anexo.</p>
               )}
-              <EnviarAnexos atendimentoId={id} />
+              {podeEditar ? <EnviarAnexos atendimentoId={id} /> : null}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Pendências</CardTitle>
-              {!encerrado ? (
+              {editavel ? (
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/pendencias/nova?atendimento=${id}`}>
                     <Plus className="size-3.5" />

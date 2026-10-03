@@ -265,6 +265,12 @@ URLs exibidas são assinadas e valem 1 hora.
   Server Action revalida sessão e entrada (Zod) antes de escrever — Server Actions são
   endpoints POST públicos.
 - **`org_id` sempre do perfil logado**, nunca do formulário.
+- **Visualizador não vê controles de escrita.** Botão, formulário ou link para
+  criar/editar/excluir só aparece com `await podeEscreverAgora()` verdadeiro, e páginas
+  de criar/editar começam com `await exigirEscritaNaPagina("/listagem")`
+  (`lib/auth.ts`). Isso é conveniência de tela — a barreira real continua sendo
+  `exigirPermissaoDeEscrita()` na Server Action e o RLS. Tela nova com escrita segue
+  as duas regras.
 - **Supabase no servidor:** `getUser()`, nunca `getSession()`. Um cliente por
   requisição (`criarClienteServidor()`), nunca em variável de módulo. O cliente admin
   (`lib/supabase/admin.ts`) só em código de servidor e só para o que exige service role.

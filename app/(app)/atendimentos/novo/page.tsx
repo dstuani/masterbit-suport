@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Card, CardContent } from "@/components/ui/card";
+import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { opcoesDeFormulario } from "@/lib/services/atendimentos";
 import { FormularioAtendimento } from "./formulario";
@@ -13,6 +14,7 @@ export default async function NovoAtendimentoPage({
   searchParams: Promise<{ cliente?: string; titulo?: string }>;
 }) {
   const { cliente, titulo } = await searchParams;
+  await exigirEscritaNaPagina("/atendimentos");
 
   if (!supabaseConfigurado) {
     return (

@@ -6,6 +6,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { buscarCasosParecidos, type CasoParecido } from "@/lib/services/similares";
 import { PainelDeParecidos } from "./painel";
@@ -34,6 +35,8 @@ export default async function CasosParecidosPage({
 
   let casos: CasoParecido[] | null = null;
   let erro: string | null = null;
+
+  const podeEditar = await podeEscreverAgora();
 
   if (q) {
     try {
@@ -91,12 +94,14 @@ export default async function CasosParecidosPage({
       ) : casos && casos.length > 0 ? (
         <div className="flex flex-col gap-3">
           <PainelDeParecidos casos={casos} />
-          <p className="text-sm text-muted-foreground">
-            Nenhum deles resolve?{" "}
-            <Link href={linkNovoAtendimento} className="text-primary hover:underline">
-              Abrir novo atendimento com estes termos
-            </Link>
-          </p>
+          {podeEditar ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum deles resolve?{" "}
+              <Link href={linkNovoAtendimento} className="text-primary hover:underline">
+                Abrir novo atendimento com estes termos
+              </Link>
+            </p>
+          ) : null}
         </div>
       ) : (
         <Card>
@@ -105,17 +110,19 @@ export default async function CasosParecidosPage({
             <div>
               <p className="text-sm font-medium">Nenhum caso resolvido parecido</p>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Não há atendimento resolvido com esses termos. Tente outras palavras ou
-                abra um novo atendimento — o assunto já vai preenchido com o que você
-                digitou.
+                {podeEditar
+                  ? "Não há atendimento resolvido com esses termos. Tente outras palavras ou abra um novo atendimento — o assunto já vai preenchido com o que você digitou."
+                  : "Não há atendimento resolvido com esses termos. Tente outras palavras."}
               </p>
             </div>
-            <Button asChild>
-              <Link href={linkNovoAtendimento}>
-                <Plus />
-                Criar novo atendimento com estes termos
-              </Link>
-            </Button>
+            {podeEditar ? (
+              <Button asChild>
+                <Link href={linkNovoAtendimento}>
+                  <Plus />
+                  Criar novo atendimento com estes termos
+                </Link>
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       )}

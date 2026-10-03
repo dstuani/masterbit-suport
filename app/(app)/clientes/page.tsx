@@ -6,6 +6,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarClientes } from "@/lib/services/clientes";
 import { formatarDocumento } from "@/lib/utils";
@@ -50,17 +51,20 @@ export default async function ClientesPage({
     );
   }
 
-  const clientes = await listarClientes({
-    busca,
-    status: status === "ativo" || status === "inativo" || status === "prospect" ? status : undefined,
-  });
+  const [clientes, podeEditar] = await Promise.all([
+    listarClientes({
+      busca,
+      status: status === "ativo" || status === "inativo" || status === "prospect" ? status : undefined,
+    }),
+    podeEscreverAgora(),
+  ]);
 
   return (
     <>
       <PageHeader
         titulo="Clientes"
         descricao="Cadastro, filiais, contatos e sistemas instalados."
-        acoes={acoes}
+        acoes={podeEditar ? acoes : null}
       />
 
       <FiltrosClientes busca={busca ?? ""} status={status ?? ""} />
@@ -79,7 +83,7 @@ export default async function ClientesPage({
                   : "Cadastre o primeiro cliente para começar a registrar atendimentos."}
               </p>
             </div>
-            {!busca && !status ? (
+            {!busca && !status && podeEditar ? (
               <Button asChild size="sm">
                 <Link href="/clientes/novo">
                   <Plus />

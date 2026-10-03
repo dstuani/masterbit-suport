@@ -4,6 +4,9 @@ import { ArrowLeft } from "lucide-react";
 
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { podeEscreverAgora } from "@/lib/auth";
+import { STATUS_TOPICO_CONSULTORIA } from "@/lib/constants";
 import { supabaseConfigurado } from "@/lib/env";
 import { ehImagem } from "@/lib/anexos";
 import {
@@ -13,6 +16,7 @@ import {
 } from "@/lib/services/consultoria";
 import { formatarRelativo, formatarTamanho } from "@/lib/utils";
 import { EnviarAnexosDoTopico, RemoverAnexoDoTopico } from "../anexos";
+import { BarraDeProgresso } from "../barra";
 import { CaixaDeComentario, LinhaDoTempo } from "../comentarios";
 import { ControleDeProgresso } from "../progresso";
 import { SeletorDeStatus } from "../status";
@@ -25,10 +29,12 @@ export default async function TopicoPage({ params }: { params: Promise<{ id: str
   const topico = await obterTopico(id);
   if (!topico) notFound();
 
-  const [comentarios, anexos] = await Promise.all([
+  const [comentarios, anexos, podeEditar] = await Promise.all([
     listarComentarios(id),
     listarAnexosTopico(id),
+    podeEscreverAgora(),
   ]);
+  const status = STATUS_TOPICO_CONSULTORIA[topico.status];
 
   return (
     <>
@@ -47,27 +53,40 @@ export default async function TopicoPage({ params }: { params: Promise<{ id: str
           ) : null}
           <h1 className="mt-0.5 text-xl font-semibold tracking-tight">{topico.titulo}</h1>
         </div>
-        <SeletorDeStatus topicoId={id} statusAtual={topico.status} />
+        {podeEditar ? (
+          <SeletorDeStatus topicoId={id} statusAtual={topico.status} />
+        ) : (
+          <Badge className={status.cor}>{status.rotulo}</Badge>
+        )}
       </div>
 
       <Card className="mb-4">
         <CardContent className="p-5">
-          {/* key: ao concluir, o servidor leva o progresso a 100 e o controle precisa remontar. */}
-          <ControleDeProgresso
-            key={topico.progresso}
-            topicoId={id}
-            progressoAtual={topico.progresso}
-          />
+          {podeEditar ? (
+            // key: ao concluir, o servidor leva o progresso a 100 e o controle precisa remontar.
+            <ControleDeProgresso
+              key={topico.progresso}
+              topicoId={id}
+              progressoAtual={topico.progresso}
+            />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm text-muted-foreground">Progresso</span>
+              <BarraDeProgresso valor={topico.progresso} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
-          <Card>
-            <CardContent className="p-5">
-              <CaixaDeComentario topicoId={id} />
-            </CardContent>
-          </Card>
+          {podeEditar ? (
+            <Card>
+              <CardContent className="p-5">
+                <CaixaDeComentario topicoId={id} />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -136,14 +155,16 @@ export default async function TopicoPage({ params }: { params: Promise<{ id: str
                           {formatarRelativo(anexo.created_at)}
                         </span>
                       </div>
-                      <RemoverAnexoDoTopico anexoId={anexo.id} nome={anexo.nome_original} />
+                      {podeEditar ? (
+                        <RemoverAnexoDoTopico anexoId={anexo.id} nome={anexo.nome_original} />
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="text-muted-foreground">Nenhum anexo.</p>
               )}
-              <EnviarAnexosDoTopico topicoId={id} />
+              {podeEditar ? <EnviarAnexosDoTopico topicoId={id} /> : null}
             </CardContent>
           </Card>
         </aside>

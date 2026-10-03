@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PRIORIDADES, RESPONSAVEL_PENDENCIA } from "@/lib/constants";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarPendencias, type FiltrosPendencias, type PendenciaComContexto } from "@/lib/services/pendencias";
 import { formatarDataHora, formatarRelativo, cn } from "@/lib/utils";
@@ -58,11 +59,14 @@ export default async function PendenciasPage({
     );
   }
 
-  const pendencias = await listarPendencias({
-    responsavel: responsavel as "eu" | "cliente" | "terceiro" | undefined,
-    prioridade: prioridade || undefined,
-    status: (status || undefined) as FiltrosPendencias["status"],
-  });
+  const [pendencias, podeEditar] = await Promise.all([
+    listarPendencias({
+      responsavel: responsavel as "eu" | "cliente" | "terceiro" | undefined,
+      prioridade: prioridade || undefined,
+      status: (status || undefined) as FiltrosPendencias["status"],
+    }),
+    podeEscreverAgora(),
+  ]);
 
   const abertas = pendencias.filter((p) => p.status === "aberta");
   const emAndamento = pendencias.filter((p) => p.status === "em_andamento");
@@ -78,12 +82,14 @@ export default async function PendenciasPage({
         titulo="Pendências"
         descricao="O que ficou em aberto — de quem depende e para quando."
         acoes={
-          <Button asChild size="sm">
-            <Link href="/pendencias/nova">
-              <Plus />
-              Nova pendência
-            </Link>
-          </Button>
+          podeEditar ? (
+            <Button asChild size="sm">
+              <Link href="/pendencias/nova">
+                <Plus />
+                Nova pendência
+              </Link>
+            </Button>
+          ) : null
         }
       />
 
@@ -121,7 +127,7 @@ export default async function PendenciasPage({
       ) : mostraStatus ? (
         <div className="flex flex-col gap-2">
           {pendencias.map((p) => (
-            <CartaoPendencia key={p.id} pendencia={p} mostraStatus />
+            <CartaoPendencia key={p.id} pendencia={p} mostraStatus podeEditar={podeEditar} />
           ))}
         </div>
       ) : (
@@ -129,7 +135,7 @@ export default async function PendenciasPage({
           {emAndamento.length > 0 ? (
             <Grupo titulo="Em andamento" contagem={emAndamento.length}>
               {emAndamento.map((p) => (
-                <CartaoPendencia key={p.id} pendencia={p} />
+                <CartaoPendencia key={p.id} pendencia={p} podeEditar={podeEditar} />
               ))}
             </Grupo>
           ) : null}
@@ -137,7 +143,7 @@ export default async function PendenciasPage({
           {abertas.length > 0 ? (
             <Grupo titulo="Abertas" contagem={abertas.length}>
               {abertas.map((p) => (
-                <CartaoPendencia key={p.id} pendencia={p} />
+                <CartaoPendencia key={p.id} pendencia={p} podeEditar={podeEditar} />
               ))}
             </Grupo>
           ) : null}
@@ -145,7 +151,7 @@ export default async function PendenciasPage({
           {concluidas.length > 0 ? (
             <Grupo titulo="Concluídas" contagem={concluidas.length}>
               {concluidas.map((p) => (
-                <CartaoPendencia key={p.id} pendencia={p} />
+                <CartaoPendencia key={p.id} pendencia={p} podeEditar={podeEditar} />
               ))}
             </Grupo>
           ) : null}
@@ -153,7 +159,7 @@ export default async function PendenciasPage({
           {canceladas.length > 0 ? (
             <Grupo titulo="Canceladas" contagem={canceladas.length}>
               {canceladas.map((p) => (
-                <CartaoPendencia key={p.id} pendencia={p} />
+                <CartaoPendencia key={p.id} pendencia={p} podeEditar={podeEditar} />
               ))}
             </Grupo>
           ) : null}
@@ -190,9 +196,11 @@ function Grupo({
 function CartaoPendencia({
   pendencia,
   mostraStatus,
+  podeEditar,
 }: {
   pendencia: PendenciaComContexto;
   mostraStatus?: boolean;
+  podeEditar: boolean;
 }) {
   const prioridade = PRIORIDADES[pendencia.prioridade as keyof typeof PRIORIDADES];
   const agora = new Date();
@@ -260,7 +268,7 @@ function CartaoPendencia({
             ) : null}
           </div>
 
-          {!encerrada ? (
+          {!encerrada && podeEditar ? (
             <div className="flex shrink-0 items-start gap-0.5">
               {pendencia.status === "aberta" ? <BotaoIniciar id={pendencia.id} /> : null}
               <BotaoConcluir id={pendencia.id} />

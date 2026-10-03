@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
+import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { FormularioPendencia } from "./formulario";
@@ -12,6 +13,7 @@ export default async function NovaPendenciaPage({
   searchParams: Promise<{ atendimento?: string }>;
 }) {
   const { atendimento: atendimentoId } = await searchParams;
+  await exigirEscritaNaPagina("/pendencias");
 
   if (!supabaseConfigurado) {
     return (

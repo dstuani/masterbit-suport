@@ -23,10 +23,12 @@ export function SecaoContatos({
   clienteId,
   contatos,
   filiais,
+  podeEditar,
 }: {
   clienteId: string;
   contatos: ContatoComFilial[];
   filiais: Filial[];
+  podeEditar: boolean;
 }) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const editando = contatos.find((c) => c.id === editandoId) ?? null;
@@ -54,7 +56,7 @@ export function SecaoContatos({
                   <th className="px-4 py-2.5 font-medium">E-mail</th>
                   <th className="px-4 py-2.5 font-medium">Telefone</th>
                   <th className="px-4 py-2.5 font-medium"></th>
-                  <th className="px-4 py-2.5 font-medium text-right">Ações</th>
+                  {podeEditar ? <th className="px-4 py-2.5 font-medium text-right">Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -79,35 +81,37 @@ export function SecaoContatos({
                         {!contato.ativo ? <Badge>Inativo</Badge> : null}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex justify-end gap-1">
-                        {contato.id === editandoId ? (
-                          <span className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary">
-                            <Pencil className="size-3.5" />
-                            Editando…
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => editar(contato.id)}
-                          >
-                            <Pencil className="size-3.5" />
-                            <span className="hidden sm:inline">Editar</span>
-                          </Button>
-                        )}
-                        {contato.ativo ? (
-                          <BotaoExcluirContato
-                            id={contato.id}
-                            clienteId={clienteId}
-                            nome={contato.nome}
-                          />
-                        ) : (
-                          <BotaoReativarContato id={contato.id} clienteId={clienteId} />
-                        )}
-                      </div>
-                    </td>
+                    {podeEditar ? (
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-end gap-1">
+                          {contato.id === editandoId ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary">
+                              <Pencil className="size-3.5" />
+                              Editando…
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => editar(contato.id)}
+                            >
+                              <Pencil className="size-3.5" />
+                              <span className="hidden sm:inline">Editar</span>
+                            </Button>
+                          )}
+                          {contato.ativo ? (
+                            <BotaoExcluirContato
+                              id={contato.id}
+                              clienteId={clienteId}
+                              nome={contato.nome}
+                            />
+                          ) : (
+                            <BotaoReativarContato id={contato.id} clienteId={clienteId} />
+                          )}
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -118,25 +122,27 @@ export function SecaoContatos({
 
       {/* div puro, não o componente Card: um alvo de scroll/ref não pode depender de
           um componente próprio encaminhar a ref corretamente. */}
-      <div ref={formulario}>
-        <Card className={editando ? "border-primary ring-1 ring-primary/30" : undefined}>
-          <CardHeader>
-            <CardTitle>{editando ? `Editar ${editando.nome}` : "Adicionar contato"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormularioContato
-              // Muda a key ao trocar de contato (ou para o modo de adição), o que
-              // remonta o formulário — mais simples que sincronizar cada campo à mão.
-              key={editando?.id ?? "novo"}
-              clienteId={clienteId}
-              filiais={filiais}
-              contato={editando ?? undefined}
-              aoCancelar={editando ? () => setEditandoId(null) : undefined}
-              aoSalvarComSucesso={() => setEditandoId(null)}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {podeEditar ? (
+        <div ref={formulario}>
+          <Card className={editando ? "border-primary ring-1 ring-primary/30" : undefined}>
+            <CardHeader>
+              <CardTitle>{editando ? `Editar ${editando.nome}` : "Adicionar contato"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormularioContato
+                // Muda a key ao trocar de contato (ou para o modo de adição), o que
+                // remonta o formulário — mais simples que sincronizar cada campo à mão.
+                key={editando?.id ?? "novo"}
+                clienteId={clienteId}
+                filiais={filiais}
+                contato={editando ?? undefined}
+                aoCancelar={editando ? () => setEditandoId(null) : undefined}
+                aoSalvarComSucesso={() => setEditandoId(null)}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

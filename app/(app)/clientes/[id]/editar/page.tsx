@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { obterCliente } from "@/lib/services/clientes";
 import { FormularioCliente } from "../../formulario-cliente";
@@ -16,6 +17,7 @@ export default async function EditarClientePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await exigirEscritaNaPagina(`/clientes/${id}`);
 
   if (!supabaseConfigurado) {
     return (

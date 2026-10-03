@@ -81,6 +81,25 @@ export function podeEscrever(perfil: Perfil) {
   return perfil.role === "owner" || perfil.role === "tecnico";
 }
 
+/**
+ * Usa em páginas para decidir se mostra botões e formulários de escrita.
+ *
+ * Esconder é só conveniência — quem barra de verdade é exigirPermissaoDeEscrita()
+ * nas Server Actions e o RLS no banco. Sem isto, o visualizador via todos os botões
+ * e só descobria a restrição ao clicar. Modo de visualização (sem Supabase): libera,
+ * para o shell continuar navegável.
+ */
+export async function podeEscreverAgora(): Promise<boolean> {
+  if (!supabaseConfigurado) return true;
+  const perfil = await obterPerfil();
+  return perfil !== null && perfil.ativo && podeEscrever(perfil);
+}
+
+/** Usa no topo de páginas de criar/editar: quem só consulta volta para a listagem. */
+export async function exigirEscritaNaPagina(voltarPara: string): Promise<void> {
+  if (!(await podeEscreverAgora())) redirect(voltarPara);
+}
+
 export async function exigirPermissaoDeEscrita(): Promise<Perfil> {
   const perfil = await exigirPerfil();
   if (!podeEscrever(perfil)) throw new Error("Sem permissão para esta operação");

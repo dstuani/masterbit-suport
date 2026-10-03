@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 export function TituloDoAtendimento({
   atendimentoId,
   titulo,
+  podeEditar,
 }: {
   atendimentoId: string;
   titulo: string;
+  podeEditar: boolean;
 }) {
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(titulo);
@@ -51,6 +53,10 @@ export function TituloDoAtendimento({
         setEditando(false);
       }
     });
+  }
+
+  if (!podeEditar) {
+    return <h1 className="mt-1.5 text-xl font-semibold tracking-tight">{titulo}</h1>;
   }
 
   if (!editando) {

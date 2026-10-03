@@ -7,6 +7,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { podeEscreverAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarSistemas } from "@/lib/services/catalogo";
 import {
@@ -58,12 +59,13 @@ export default async function ClientePage({
   if (!cliente) notFound();
 
   // Carregado em paralelo: a ficha mostra os contadores em todas as abas.
-  const [filiais, contatos, sistemasDoCliente, catalogo, atendimentos] = await Promise.all([
+  const [filiais, contatos, sistemasDoCliente, catalogo, atendimentos, podeEditar] = await Promise.all([
     listarFiliais(id),
     listarContatos(id),
     listarSistemasDoCliente(id),
     listarSistemas(),
     contarAtendimentosDoCliente(id),
+    podeEscreverAgora(),
   ]);
 
   return (
@@ -72,12 +74,14 @@ export default async function ClientePage({
         titulo={cliente.razao_social}
         descricao={cliente.nome_fantasia ?? undefined}
         acoes={
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/clientes/${id}/editar`}>
-              <Pencil />
-              Editar
-            </Link>
-          </Button>
+          podeEditar ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/clientes/${id}/editar`}>
+                <Pencil />
+                Editar
+              </Link>
+            </Button>
+          ) : null
         }
       />
 
@@ -107,7 +111,7 @@ export default async function ClientePage({
       {aba === "geral" ? <AbaGeral cliente={cliente} /> : null}
 
       {aba === "filiais" ? (
-        <Secao titulo="Filiais" formulario={<FormularioFilial clienteId={id} />}>
+        <Secao titulo="Filiais" formulario={podeEditar ? <FormularioFilial clienteId={id} /> : null}>
           {filiais.length === 0 ? (
             <Vazio texto="Nenhuma filial cadastrada." />
           ) : (
@@ -130,15 +134,22 @@ export default async function ClientePage({
 
       {aba === "contatos" ? (
         <div className="flex flex-col gap-4">
-          <div className="flex justify-end">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/clientes/${id}/importar`}>
-                <Upload />
-                Importar planilha
-              </Link>
-            </Button>
-          </div>
-          <SecaoContatos clienteId={id} contatos={contatos} filiais={filiais} />
+          {podeEditar ? (
+            <div className="flex justify-end">
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/clientes/${id}/importar`}>
+                  <Upload />
+                  Importar planilha
+                </Link>
+              </Button>
+            </div>
+          ) : null}
+          <SecaoContatos
+            clienteId={id}
+            contatos={contatos}
+            filiais={filiais}
+            podeEditar={podeEditar}
+          />
         </div>
       ) : null}
 
@@ -146,7 +157,9 @@ export default async function ClientePage({
         <Secao
           titulo="Sistemas instalados"
           formulario={
-            <FormularioSistemaDoCliente clienteId={id} filiais={filiais} sistemas={catalogo} />
+            podeEditar ? (
+              <FormularioSistemaDoCliente clienteId={id} filiais={filiais} sistemas={catalogo} />
+            ) : null
           }
         >
           {sistemasDoCliente.length === 0 ? (
@@ -169,13 +182,15 @@ export default async function ClientePage({
                     {formatarData(item.data_implantacao)}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <form action={removerSistemaDoClienteAction}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="cliente_id" value={id} />
-                      <Button type="submit" variant="ghost" size="sm">
-                        Remover
-                      </Button>
-                    </form>
+                    {podeEditar ? (
+                      <form action={removerSistemaDoClienteAction}>
+                        <input type="hidden" name="id" value={item.id} />
+                        <input type="hidden" name="cliente_id" value={id} />
+                        <Button type="submit" variant="ghost" size="sm">
+                          Remover
+                        </Button>
+                      </form>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -213,12 +228,14 @@ function Secao({
     <div className="flex flex-col gap-4">
       {acoes ? <div className="flex justify-end">{acoes}</div> : null}
       <Card className="overflow-hidden">{children}</Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Adicionar a {titulo.toLowerCase()}</CardTitle>
-        </CardHeader>
-        <CardContent>{formulario}</CardContent>
-      </Card>
+      {formulario ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Adicionar a {titulo.toLowerCase()}</CardTitle>
+          </CardHeader>
+          <CardContent>{formulario}</CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

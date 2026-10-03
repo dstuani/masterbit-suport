@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
+import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { obterCliente } from "@/lib/services/clientes";
 import { Importador } from "./importador";
@@ -16,6 +17,7 @@ export default async function ImportarContatosPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await exigirEscritaNaPagina(`/clientes/${id}?aba=contatos`);
 
   if (!supabaseConfigurado) {
     return (
