@@ -9,6 +9,30 @@
         "dev"
       ],
       "port": 3100
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4100",
+        "--directory",
+        "landing"
+      ],
+      "port": 4100
+    },
+    {
+      "name": "atendimento",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4200",
+        "--directory",
+        "atendimento"
+      ],
+      "port": 4200
     }
   ]
 }

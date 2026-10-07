@@ -1296,6 +1296,69 @@ export type Database = {
           },
         ];
       };
+      solicitacoes: {
+        Row: {
+          id: string;
+          org_id: string;
+          nome: string;
+          empresa: string | null;
+          email: string;
+          telefone: string | null;
+          assunto: string;
+          descricao: string;
+          status: "nova" | "tratada" | "descartada";
+          tratada_por: string | null;
+          tratada_em: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          nome: string;
+          empresa?: string | null;
+          email: string;
+          telefone?: string | null;
+          assunto: string;
+          descricao: string;
+          status?: "nova" | "tratada" | "descartada";
+          tratada_por?: string | null;
+          tratada_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          nome?: string;
+          empresa?: string | null;
+          email?: string;
+          telefone?: string | null;
+          assunto?: string;
+          descricao?: string;
+          status?: "nova" | "tratada" | "descartada";
+          tratada_por?: string | null;
+          tratada_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "solicitacoes_tratada_por_fkey";
+            columns: ["tratada_por"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       subcategorias: {
         Row: {
           id: string;
@@ -1391,6 +1454,7 @@ export type Database = {
       status_cliente: "ativo" | "inativo" | "prospect";
       status_evento: "agendado" | "confirmado" | "realizado" | "cancelado" | "remarcado";
       status_pendencia: "aberta" | "em_andamento" | "concluida" | "cancelada";
+      status_solicitacao: "nova" | "tratada" | "descartada";
       status_topico_consultoria: "pendente" | "em_andamento" | "concluido" | "cancelado";
       tipo_atendimento: "duvida" | "erro" | "treinamento" | "implantacao" | "melhoria" | "manutencao" | "consultoria";
       tipo_contrato: "avulso" | "mensal" | "pacote_horas";

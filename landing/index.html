@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masterbit Suport: a memória do seu suporte técnico</title>
+  <meta name="description" content="Registre cada atendimento, acompanhe pendências e retornos e reencontre a solução depois. O Masterbit Suport guarda o que você já resolveu.">
+  <meta property="og:title" content="Masterbit Suport: a memória do seu suporte técnico">
+  <meta property="og:description" content="Registre o atendimento. Reencontre a solução.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#F3F6F8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Literata:opsz,wght@7..72,300..900&display=swap">
+
+  <style>
+    :root {
+      --tinta: #0e1b26;
+      --tinta-2: #26394a;
+      --grafite: #566677;
+      --nevoa: #dce4e9;
+      --papel: #f3f6f8;
+      --branco: #ffffff;
+      --laranja: #f47b36;
+      --laranja-forte: #e86a22;
+      --laranja-texto: #b84a12;
+      --painel: #0e1b26;
+      --painel-campo: #172b3c;
+      --painel-linha: #2d4459;
+      --titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+      --texto: "Literata", Georgia, "Times New Roman", serif;
+      --margem: clamp(1rem, 4vw, 2.5rem);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--papel);
+      color: var(--tinta);
+      font-family: var(--texto);
+      font-size: 1.0625rem;
+      line-height: 1.65;
+    }
+    [hidden] { display: none !important; }
+    img, svg { display: block; max-width: 100%; }
+    a { color: inherit; }
+    h1, h2, h3, p, ul, ol, dl, dd { margin: 0; }
+    ul, ol { padding: 0; list-style: none; }
+
+    :focus-visible { outline: 3px solid var(--laranja-texto); outline-offset: 3px; border-radius: 4px; }
+    .pular {
+      position: absolute; left: -999px; top: 0; z-index: 10;
+      background: var(--tinta); color: var(--branco); padding: .75rem 1rem;
+    }
+    .pular:focus { left: 0; }
+
+    .miolo { width: min(1120px, 100% - 2 * var(--margem)); margin-inline: auto; }
+    .secao { padding-block: clamp(3rem, 7vw, 5.5rem); }
+    .titulo {
+      font-family: var(--titulo);
+      font-weight: 700;
+      font-variation-settings: "wdth" 88;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
+    h2.titulo { font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.1; font-weight: 650; }
+    h3 { font-family: var(--titulo); font-weight: 650; font-size: 1.3rem; line-height: 1.2; letter-spacing: -0.01em; }
+    .lead { max-width: 60ch; color: var(--tinta-2); }
+
+    /* Botões */
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 1.3rem; border-radius: 10px;
+      background: var(--laranja); color: var(--tinta);
+      font-family: var(--titulo); font-weight: 650; font-size: 1rem; line-height: 1.2;
+      text-decoration: none; transition: background-color .15s ease;
+    }
+    .btn:hover { background: var(--laranja-forte); }
+    .btn.pequeno { padding: .55rem .95rem; font-size: .9375rem; }
+    .link-forte {
+      font-family: var(--titulo); font-weight: 600; color: var(--tinta);
+      text-decoration-thickness: 2px; text-underline-offset: 5px;
+      text-decoration-color: var(--laranja);
+    }
+    .link-forte:hover { text-decoration-color: var(--tinta); }
+
+    /* Selos de status (mesmas cores do sistema) */
+    .selo {
+      display: inline-block; padding: .3rem .6rem; border-radius: 999px;
+      font-family: var(--titulo); font-weight: 600; font-size: .78rem; line-height: 1;
+    }
+    .selo.aberto { background: #dcecfa; color: #0b4a75; }
+    .selo.andamento { background: #fdebc8; color: #7a4a00; }
+    .selo.aguardando { background: #e9e0fa; color: #4a2a8a; }
+    .selo.resolvido { background: #d5f2e3; color: #0f5c38; }
+    .selo.pendente { background: #e8ecef; color: #3c4b59; }
+
+    /* Cabeçalho */
+    .topo { padding-block: 1.1rem; }
+    .topo .miolo { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+    .marca-logo { height: 42px; width: auto; }
+    .menu { display: flex; align-items: center; gap: 1.75rem; }
+    .menu a:not(.btn) {
+      font-family: var(--titulo); font-weight: 500; font-size: .95rem;
+      text-decoration: none; color: var(--tinta-2);
+    }
+    .menu a:not(.btn):hover { color: var(--tinta); text-decoration: underline; text-decoration-color: var(--laranja); text-underline-offset: 5px; }
+
+    /* Abertura */
+    .abertura { padding-block: clamp(2rem, 5vw, 4rem) clamp(2.5rem, 6vw, 4.5rem); }
+    .abertura .miolo {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: clamp(2rem, 5vw, 4.5rem); align-items: center;
+    }
+    .abertura h1 {
+      font-size: clamp(2.5rem, 6.2vw, 4.4rem); line-height: 1.02;
+    }
+    .abertura h1 span { display: block; }
+    .abertura .lead { margin-top: 1.5rem; font-size: 1.125rem; }
+    .acoes { margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.75rem; }
+
+    /* Painel de casos parecidos: o único elemento escuro e chamativo da abertura */
+    .painel {
+      background: var(--painel); color: #e6edf2; border-radius: 16px;
+      padding: clamp(1rem, 2.2vw, 1.5rem);
+    }
+    .painel-titulo { font-family: var(--titulo); font-weight: 600; font-size: .95rem; color: #9fb3c3; margin-bottom: .75rem; }
+    .campo {
+      display: flex; align-items: center; gap: .7rem;
+      background: var(--painel-campo); border: 1px solid var(--painel-linha);
+      border-radius: 10px; padding: .8rem 1rem; min-height: 3.1rem;
+      font-family: var(--titulo); font-size: 1.1rem; font-weight: 500;
+    }
+    .campo svg { flex: none; color: #9fb3c3; }
+    .cursor {
+      width: 2px; height: 1.2em; background: var(--laranja); margin-left: -.45rem;
+      animation: piscar 1s steps(1) infinite;
+    }
+    .cursor[hidden] { display: none; }
+    @keyframes piscar { 50% { opacity: 0; } }
+    .sugestoes { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: .85rem 1rem; }
+    .sugestoes button {
+      font: 500 .9rem/1 var(--titulo); cursor: pointer;
+      padding: .5rem .8rem; border-radius: 999px;
+      background: transparent; color: #c9d6e0; border: 1px solid #35516b;
+      transition: background-color .15s ease, color .15s ease;
+    }
+    .sugestoes button:hover { background: #1d3448; }
+    .sugestoes button[aria-pressed="true"] { background: var(--laranja); border-color: var(--laranja); color: var(--tinta); }
+    .sugestoes button:focus-visible { outline-color: #ffd0b0; }
+    .resultados { display: grid; gap: .65rem; transition: opacity .25s ease; }
+    .resultados.aguarde { opacity: 0; }
+    .caso { background: var(--papel); color: var(--tinta); border-radius: 10px; padding: .95rem 1.05rem; }
+    .caso-topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .caso-numero { font-family: var(--titulo); font-weight: 600; font-size: .85rem; color: var(--grafite); }
+    .caso h3 { margin-top: .5rem; font-size: 1.02rem; }
+    .caso-meta { font-size: .85rem; color: var(--grafite); }
+    .caso dl { margin-top: .65rem; display: grid; gap: .45rem; font-size: .95rem; line-height: 1.5; }
+    .caso dt { font-family: var(--titulo); font-weight: 650; font-size: .85rem; color: var(--tinta-2); }
+    .painel-nota { margin-top: .85rem; font-size: .82rem; color: #9fb3c3; }
+
+    /* Linha do tempo */
+    .cabeca { max-width: 46rem; margin-bottom: clamp(2rem, 5vw, 3.5rem); }
+    .cabeca .lead { margin-top: 1rem; }
+    .linha { counter-reset: none; }
+    .passo {
+      display: grid; grid-template-columns: 9.5rem 2.75rem minmax(0, 1fr);
+      grid-template-areas: "marca trilho corpo";
+      padding-bottom: clamp(2.25rem, 5vw, 3.5rem);
+    }
+    .passo:last-child { padding-bottom: 0; }
+    .marca { grid-area: marca; display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; padding-top: .1rem; }
+    .marca time { font-family: var(--titulo); font-size: .9rem; color: var(--grafite); }
+    .trilho { grid-area: trilho; position: relative; }
+    .trilho::before {
+      content: ""; position: absolute; left: 50%; top: .4rem; bottom: -.4rem;
+      width: 2px; margin-left: -1px; background: var(--nevoa);
+    }
+    .passo:last-child .trilho::before { bottom: auto; height: 1rem; }
+    .ponto {
+      position: absolute; left: 50%; top: .35rem; width: 14px; height: 14px; margin-left: -7px;
+      border-radius: 50%; background: var(--laranja); box-shadow: 0 0 0 4px var(--papel);
+    }
+    .corpo { grid-area: corpo; }
+    .corpo h3 { margin-bottom: .5rem; }
+    .corpo > p { max-width: 58ch; color: var(--tinta-2); }
+    .corpo .legenda { margin-top: .85rem; font-size: .95rem; color: var(--grafite); max-width: 58ch; }
+
+    /* Trechos de tela: planos, só com borda */
+    .tela {
+      margin-top: 1.1rem; max-width: 34rem;
+      background: var(--branco); border: 1px solid var(--nevoa); border-radius: 10px;
+      padding: 1rem 1.1rem; font-family: var(--titulo); font-size: .95rem; line-height: 1.45;
+    }
+    .linhas { display: grid; gap: .7rem; }
+    .linhas dt { font-size: .8rem; font-weight: 600; color: var(--grafite); }
+    .linhas dd { margin-top: .1rem; font-weight: 500; }
+    .rodape-tela { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--nevoa); color: var(--grafite); font-size: .9rem; }
+    .rodape-tela strong { color: var(--tinta); }
+    .autoria { color: var(--grafite); font-size: .85rem; margin-bottom: .35rem; }
+    .autoria strong { color: var(--tinta); }
+    .anexo {
+      margin-top: .8rem; display: inline-flex; align-items: center; gap: .6rem;
+      padding: .35rem .7rem .35rem .35rem; border: 1px solid var(--nevoa); border-radius: 8px;
+      font-size: .85rem; color: var(--tinta-2);
+    }
+    .miniatura { width: 36px; height: 36px; border-radius: 5px; background: var(--nevoa); display: grid; place-items: center; color: var(--grafite); }
+    .faixa-espera {
+      background: #efe8fb; color: #3d2278; border-radius: 8px; padding: .65rem .8rem; font-size: .92rem;
+    }
+    .mini-lista { margin-top: .8rem; display: grid; }
+    .mini-lista li { display: flex; justify-content: space-between; gap: 1rem; padding-block: .55rem; border-top: 1px solid var(--nevoa); font-size: .9rem; }
+    .mini-lista li span:last-child { color: var(--grafite); text-align: right; }
+    .faturavel { margin-top: .85rem; display: inline-flex; align-items: center; gap: .45rem; font-size: .88rem; color: #0f5c38; font-weight: 600; }
+
+
+    /* Telas reais do sistema */
+    .telas-abas { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+    .telas-abas button {
+      font: 600 .95rem/1 var(--titulo); cursor: pointer;
+      padding: .6rem .95rem; border-radius: 999px;
+      background: transparent; color: var(--tinta-2); border: 1px solid #b9c7d1;
+      transition: background-color .15s ease;
+    }
+    .telas-abas button:hover { background: var(--nevoa); }
+    .telas-abas button[aria-selected="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--branco); }
+    .janela { background: var(--branco); border: 1px solid #c4d0d9; border-radius: 12px; overflow: hidden; box-shadow: 0 18px 40px -24px rgba(14,27,38,.45); }
+    .janela-barra { display: flex; gap: 6px; padding: .6rem .8rem; background: var(--nevoa); border-bottom: 1px solid #c4d0d9; }
+    .janela-barra i { width: 10px; height: 10px; border-radius: 50%; background: #aebcc7; }
+    .janela-rolagem { overflow-x: auto; }
+    .janela img { width: 100%; height: auto; }
+    @media (max-width: 720px) { .janela img { width: 880px; max-width: none; } }
+    .telas-legenda { margin-top: 1rem; max-width: 62ch; color: var(--tinta-2); min-height: 3.3em; }
+    .telas-aviso { margin-top: .5rem; font-family: var(--titulo); font-size: .85rem; color: var(--grafite); }
+
+    /* Consultoria */
+    .consultoria .miolo {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: clamp(2rem, 5vw, 4.5rem); align-items: center;
+    }
+    .consultoria .lead { margin-top: 1rem; }
+    .topicos { background: var(--branco); border: 1px solid var(--nevoa); border-radius: 12px; padding: 1.2rem 1.3rem; font-family: var(--titulo); }
+    .topico { padding-block: .85rem; border-bottom: 1px solid var(--nevoa); }
+    .topico:first-child { padding-top: 0; }
+    .topico-linha { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-weight: 550; }
+    .barra { margin-top: .6rem; display: flex; align-items: center; gap: .7rem; font-size: .85rem; color: var(--grafite); }
+    .barra-trilho { flex: 1; height: 8px; border-radius: 99px; background: var(--nevoa); overflow: hidden; }
+    .barra-preenchida { height: 100%; border-radius: 99px; background: var(--laranja); }
+    .barra-preenchida.completa { background: #1f9d63; }
+    .barra b { width: 2.6rem; text-align: right; color: var(--tinta); font-weight: 600; }
+    .topicos-geral { padding-top: 1rem; }
+    .topicos-geral .topico-linha { font-weight: 650; }
+    .topicos-geral small { display: block; margin-top: .35rem; color: var(--grafite); font-size: .85rem; font-weight: 400; }
+
+    /* Equipe: faixa escura */
+    .equipe { background: var(--tinta); color: #e6edf2; }
+    .equipe .miolo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
+    .equipe .lead { color: #b9c9d6; margin-top: 1rem; }
+    .equipe-fatos { margin-top: 1.75rem; display: grid; gap: .9rem; color: #c9d6e0; font-size: 1rem; }
+    .equipe-fatos li { padding-left: 1.2rem; position: relative; }
+    .equipe-fatos li::before { content: ""; position: absolute; left: 0; top: .72em; width: 7px; height: 7px; border-radius: 50%; background: var(--laranja); }
+    .tabela-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-family: var(--titulo); font-size: .98rem; }
+    caption { text-align: left; padding-bottom: .9rem; color: #9fb3c3; font-size: .9rem; }
+    th, td { padding: .85rem .75rem; text-align: center; border-bottom: 1px solid #263d51; }
+    th:first-child, td:first-child { text-align: left; padding-left: 0; }
+    thead th { font-weight: 650; color: #ffffff; }
+    tbody th { font-weight: 500; color: #dbe5ec; }
+    .sim { color: var(--laranja); font-weight: 650; }
+    .nao { color: #7d91a2; }
+
+    /* Para quem é */
+    .quem .colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(2rem, 6vw, 5rem); margin-top: 2rem; }
+    .quem h3 { margin-bottom: .9rem; }
+    .quem ul { display: grid; gap: .85rem; color: var(--tinta-2); }
+    .quem li { padding-left: 1.5rem; position: relative; }
+    .quem .combina li::before {
+      content: ""; position: absolute; left: 0; top: .55em; width: 11px; height: 6px;
+      border-left: 2px solid #1f9d63; border-bottom: 2px solid #1f9d63; transform: rotate(-45deg);
+    }
+    .quem .ainda li::before { content: ""; position: absolute; left: 1px; top: .78em; width: 10px; height: 2px; background: var(--grafite); }
+
+    /* Contato */
+    .contato { border-top: 1px solid var(--nevoa); }
+    .contato .miolo {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: clamp(2rem, 5vw, 4.5rem); align-items: start;
+    }
+    .contato .lead { margin-top: 1rem; }
+    .contato-email { margin-top: 1.75rem; font-family: var(--titulo); color: var(--tinta-2); }
+
+    /* Formulário de contato */
+    .form-contato { display: grid; gap: 1rem; font-family: var(--titulo); }
+    .form-contato .duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .form-contato label { display: block; font-size: .9rem; font-weight: 600; color: var(--tinta-2); margin-bottom: .35rem; }
+    .form-contato label small { font-weight: 400; color: var(--grafite); }
+    .form-contato input, .form-contato textarea {
+      width: 100%; font: 500 1rem/1.4 var(--titulo); color: var(--tinta);
+      background: var(--branco); border: 1px solid #b9c7d1; border-radius: 10px;
+      padding: .7rem .85rem;
+    }
+    .form-contato textarea { min-height: 8.5rem; resize: vertical; }
+    .form-contato input:focus-visible, .form-contato textarea:focus-visible { outline: 3px solid var(--laranja-texto); outline-offset: 1px; border-color: var(--laranja-texto); }
+    .form-contato button[type="submit"] {
+      justify-self: start; border: 0; cursor: pointer; font: 650 1rem/1.2 var(--titulo);
+      padding: .85rem 1.3rem; border-radius: 10px; background: var(--laranja); color: var(--tinta);
+      transition: background-color .15s ease;
+    }
+    .form-contato button[type="submit"]:hover { background: var(--laranja-forte); }
+    .form-contato button[type="submit"][disabled] { opacity: .6; cursor: progress; }
+    .form-nota { font-size: .85rem; color: var(--grafite); max-width: 52ch; }
+    .form-aviso { font-size: .95rem; min-height: 1.4em; }
+    .form-aviso.erro { color: #a3201a; font-weight: 600; }
+    /* Campo-armadilha: fora da tela para pessoas, à vista de robôs que preenchem tudo. */
+    .isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .form-ok { background: var(--branco); border: 1px solid var(--nevoa); border-radius: 12px; padding: 1.5rem; font-family: var(--titulo); }
+    .form-ok h3 { margin-bottom: .5rem; }
+    .form-ok p { color: var(--tinta-2); }
+
+    .rodape { padding-block: 2rem 2.5rem; border-top: 1px solid var(--nevoa); }
+    .rodape .miolo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .rodape small { font-family: var(--titulo); color: var(--grafite); font-size: .9rem; }
+
+    @media (max-width: 960px) {
+      .abertura .miolo, .consultoria .miolo, .equipe .miolo, .contato .miolo { grid-template-columns: minmax(0, 1fr); }
+      .menu a:not(.btn) { display: none; }
+    }
+    @media (max-width: 720px) {
+      .passo {
+        grid-template-columns: 1.75rem minmax(0, 1fr);
+        grid-template-areas: "trilho marca" "trilho corpo";
+        column-gap: .5rem;
+      }
+      .marca { flex-direction: row; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+      .quem .colunas { grid-template-columns: minmax(0, 1fr); }
+      .form-contato .duas { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .cursor { animation: none; }
+      .resultados, .btn, .sugestoes button { transition: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="miolo">
+      <a href="https://masterbit.online/" aria-label="Masterbit, voltar ao site"><img class="marca-logo" src="masterbit-logo.png" alt="Masterbit" width="113" height="42"></a>
+      <nav class="menu" aria-label="Seções da página">
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#telas">Telas</a>
+        <a href="#consultoria">Consultoria</a>
+        <a href="#equipe">Equipe</a>
+        <a href="#para-quem">Para quem é</a>
+        <a class="btn pequeno" href="#contato">Pedir demonstração</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo">
+
+    <section class="abertura" aria-labelledby="t-abertura">
+      <div class="miolo">
+        <div>
+          <h1 class="titulo" id="t-abertura">
+            <span>Registre o atendimento.</span>
+            <span>Reencontre a solução.</span>
+          </h1>
+          <p class="lead">
+            O Masterbit Suport guarda cada atendimento com o que foi feito, quanto tempo levou e como terminou. Quando o mesmo problema voltar, a resposta já está escrita.
+          </p>
+          <div class="acoes">
+            <a class="btn" href="#contato">Pedir uma demonstração</a>
+            <a class="link-forte" href="#como-funciona">Ver como funciona</a>
+          </div>
+        </div>
+
+        <div class="painel" id="demo">
+          <p class="painel-titulo">Casos parecidos</p>
+          <div class="campo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span id="consulta">erro 539</span><span class="cursor" id="cursor" aria-hidden="true" hidden></span>
+          </div>
+          <div class="sugestoes" role="group" aria-label="Escolha um problema de exemplo">
+            <button type="button" data-i="0" aria-pressed="true">erro 539</button>
+            <button type="button" data-i="1" aria-pressed="false">impressora fiscal não comunica</button>
+            <button type="button" data-i="2" aria-pressed="false">SPED bloco H</button>
+          </div>
+          <div class="resultados" id="resultados" aria-live="polite">
+            <article class="caso">
+              <div class="caso-topo"><span class="caso-numero">AT-2025-00112</span><span class="selo resolvido">Resolvido</span></div>
+              <h3>NF-E REJEITADA COM ERRO 539</h3>
+              <p class="caso-meta">Loja Exemplo, resolvido há 3 meses</p>
+              <dl>
+                <div><dt>Solução</dt><dd>A chave de acesso da nota divergia do XML já autorizado. Conferida a nota no portal da SEFAZ e reenviado o XML com a chave correta.</dd></div>
+                <div><dt>Causa raiz</dt><dd>Nota reemitida sem cancelar a anterior.</dd></div>
+              </dl>
+            </article>
+          </div>
+          <p class="painel-nota">Exemplo ilustrativo, com dados fictícios.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" id="como-funciona" aria-labelledby="t-como">
+      <div class="miolo">
+        <div class="cabeca">
+          <h2 class="titulo" id="t-como">Um atendimento, do pedido à solução</h2>
+          <p class="lead">Acompanhe um atendimento de exemplo (dados fictícios) pelas etapas que o sistema registra. O selo de cada etapa é o status que ele ganha no sistema.</p>
+        </div>
+
+        <ol class="linha">
+          <li class="passo">
+            <div class="marca"><span class="selo aberto">Aberto</span><time>09:06</time></div>
+            <div class="trilho" aria-hidden="true"><span class="ponto"></span></div>
+            <div class="corpo">
+              <h3>Abra com o mínimo</h3>
+              <p>Cliente e assunto bastam; o resto você completa durante o atendimento. O sistema gera o número do atendimento e anota a abertura no histórico.</p>
+              <div class="tela" role="group" aria-label="Exemplo de novo atendimento">
+                <dl class="linhas">
+                  <div><dt>Cliente</dt><dd>Loja Exemplo</dd></div>
+                  <div><dt>Assunto</dt><dd>IMPRESSORA FISCAL NÃO COMUNICA</dd></div>
+                </dl>
+                <p class="rodape-tela">Número gerado: <strong>AT-2026-00020</strong></p>
+              </div>
+            </div>
+          </li>
+
+          <li class="passo">
+            <div class="marca"><span class="selo andamento">Em andamento</span><time>09:40</time></div>
+            <div class="trilho" aria-hidden="true"><span class="ponto"></span></div>
+            <div class="corpo">
+              <h3>Registre enquanto atende</h3>
+              <p>Escreva o que foi feito, escolha o tipo (nota, ligação, e-mail, WhatsApp, acesso remoto ou visita) e informe os minutos. Cole um print com Ctrl+V e ele fica dentro da própria nota.</p>
+              <div class="tela" role="group" aria-label="Exemplo de registro no histórico">
+                <p class="autoria"><strong>Você</strong> registrou uma nota, 25 min</p>
+                <p>Conferida a porta COM no cadastro do equipamento: estava em COM3. Ajustada para COM4 e reiniciado o serviço.</p>
+                <div class="anexo">
+                  <span class="miniatura" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg></span>
+                  <span>print-20261005-094012.png</span>
+                </div>
+              </div>
+              <p class="legenda">O histórico não pode ser editado nem apagado. Se errar, registre uma correção.</p>
+            </div>
+          </li>
+
+          <li class="passo">
+            <div class="marca"><span class="selo aguardando">Aguardando cliente</span><time>11:20</time></div>
+            <div class="trilho" aria-hidden="true"><span class="ponto"></span></div>
+            <div class="corpo">
+              <h3>Diga o que está esperando</h3>
+              <p>Ao colocar o atendimento em espera, o sistema pede o que você aguarda e de quem. Ele aparece no Dashboard em Aguardando retorno. O que ficou em aberto vira pendência, com responsável e prazo, e os retornos vão para a agenda.</p>
+              <div class="tela" role="group" aria-label="Exemplo de atendimento em espera">
+                <p class="faixa-espera"><strong>Aguardando:</strong> cliente testar a impressão (desde hoje, 11:20)</p>
+                <ul class="mini-lista">
+                  <li><span>Confirmar teste de impressão</span><span>Responsável: cliente, prazo 06/10</span></li>
+                  <li><span>Retorno com o cliente</span><span>Agenda, 06/10 às 10:00</span></li>
+                </ul>
+              </div>
+            </div>
+          </li>
+
+          <li class="passo">
+            <div class="marca"><span class="selo resolvido">Resolvido</span><time>06/10, 10:15</time></div>
+            <div class="trilho" aria-hidden="true"><span class="ponto"></span></div>
+            <div class="corpo">
+              <h3>Feche com a solução</h3>
+              <p>Para resolver, a solução é obrigatória. Você ainda pode registrar a causa raiz e o tempo do fechamento, e marcar o atendimento como faturável.</p>
+              <div class="tela" role="group" aria-label="Exemplo de atendimento resolvido">
+                <dl class="linhas">
+                  <div><dt>Solução</dt><dd>Porta COM do equipamento mudou após a atualização do Windows. Ajustada no cadastro e serviço reiniciado.</dd></div>
+                  <div><dt>Causa raiz</dt><dd>Atualização do sistema operacional renumerou as portas.</dd></div>
+                  <div><dt>Tempo total</dt><dd>1h05</dd></div>
+                </dl>
+                <p class="faturavel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>Atendimento faturável</p>
+              </div>
+            </div>
+          </li>
+
+          <li class="passo">
+            <div class="marca"><time>Meses depois</time></div>
+            <div class="trilho" aria-hidden="true"><span class="ponto"></span></div>
+            <div class="corpo">
+              <h3>Reencontre quando o problema voltar</h3>
+              <p>Outro cliente, o mesmo defeito. A solução volta por Casos parecidos, que olha só atendimentos resolvidos, ou pela busca da lista de atendimentos, que também lê o texto do histórico.</p>
+              <p class="legenda"><a class="link-forte" href="#demo">Ver a busca em ação</a></p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="secao telas" id="telas" aria-labelledby="t-telas">
+      <div class="miolo">
+        <div class="cabeca">
+          <h2 class="titulo" id="t-telas">O sistema por dentro</h2>
+          <p class="lead">Telas reais do Masterbit Suport em uso. Nomes de clientes e dados pessoais foram desfocados.</p>
+        </div>
+        <div class="telas-abas" role="tablist" aria-label="Telas do sistema">
+            <button type="button" role="tab" id="aba-dashboard" aria-selected="true" aria-controls="tela-painel" tabindex="0" data-k="dashboard">Dashboard</button>
+            <button type="button" role="tab" id="aba-novo-atendimento" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="novo-atendimento">Novo atendimento</button>
+            <button type="button" role="tab" id="aba-casos-parecidos" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="casos-parecidos">Casos parecidos</button>
+            <button type="button" role="tab" id="aba-pendencias" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="pendencias">Pendências</button>
+            <button type="button" role="tab" id="aba-agenda" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="agenda">Agenda</button>
+            <button type="button" role="tab" id="aba-relatorios" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="relatorios">Relatórios</button>
+            <button type="button" role="tab" id="aba-configuracoes" aria-selected="false" aria-controls="tela-painel" tabindex="-1" data-k="configuracoes">Configurações</button>
+        </div>
+        <div id="tela-painel" role="tabpanel" aria-labelledby="aba-dashboard">
+          <div class="janela">
+            <div class="janela-barra" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class="janela-rolagem" tabindex="0" role="group" aria-label="Captura de tela, role para os lados no celular"><img id="tela-img" src="img/dashboard.webp" alt="Painel do Masterbit Suport com contadores de atendimentos e listas de pendências, agenda e aguardando retorno" width="1917" height="872" loading="lazy"></div>
+          </div>
+          <p class="telas-legenda" id="tela-legenda">O que está aberto, em andamento e aguardando, com pendências, agenda e últimos atendimentos na mesma tela.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao consultoria" id="consultoria" aria-labelledby="t-consultoria">
+      <div class="miolo">
+        <div>
+          <h2 class="titulo" id="t-consultoria">Projetos de consultoria, tópico por tópico</h2>
+          <p class="lead">Divida o escopo em tópicos. Cada um tem status, progresso de 0 a 100%, comentários e anexos. O progresso geral do projeto é a média dos tópicos, sem contar os cancelados.</p>
+        </div>
+        <div class="topicos" role="group" aria-label="Exemplo de projeto de consultoria">
+          <div class="topico">
+            <div class="topico-linha"><span>Levantamento do fluxo atual</span><span class="selo resolvido">Concluído</span></div>
+            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida completa" style="width:100%"></div></div><b>100%</b></div>
+          </div>
+          <div class="topico">
+            <div class="topico-linha"><span>Configuração do módulo fiscal</span><span class="selo andamento">Em andamento</span></div>
+            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:60%"></div></div><b>60%</b></div>
+          </div>
+          <div class="topico">
+            <div class="topico-linha"><span>Treinamento da equipe</span><span class="selo pendente">Pendente</span></div>
+            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:0%"></div></div><b>0%</b></div>
+          </div>
+          <div class="topicos-geral">
+            <div class="topico-linha"><span>Progresso geral</span></div>
+            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:53%"></div></div><b>53%</b></div>
+            <small>1 de 3 tópicos concluídos. Exemplo ilustrativo.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao equipe" id="equipe" aria-labelledby="t-equipe">
+      <div class="miolo">
+        <div>
+          <h2 class="titulo" id="t-equipe">Cada pessoa faz só o que o papel permite</h2>
+          <p class="lead">Três papéis definem quem consulta, quem atende e quem administra. As regras valem no banco de dados, não só nos botões da tela.</p>
+          <ul class="equipe-fatos">
+            <li>A auditoria registra quem alterou clientes, atendimentos, pendências, usuários e tópicos de consultoria.</li>
+            <li>Usuário desativado perde o acesso aos dados na hora.</li>
+            <li>Usuário novo entra desativado até o owner liberar.</li>
+          </ul>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <caption>O que cada papel pode fazer</caption>
+            <thead>
+              <tr><th scope="col">Ação</th><th scope="col">Owner</th><th scope="col">Técnico</th><th scope="col">Visualizador</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Consultar atendimentos, clientes e relatórios</th><td class="sim">Sim</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+              <tr><th scope="row">Abrir, registrar e resolver atendimentos</th><td class="sim">Sim</td><td class="sim">Sim</td><td class="nao">Não</td></tr>
+              <tr><th scope="row">Cadastrar clientes, agenda e pendências</th><td class="sim">Sim</td><td class="sim">Sim</td><td class="nao">Não</td></tr>
+              <tr><th scope="row">Criar usuários e ver a auditoria</th><td class="sim">Sim</td><td class="nao">Não</td><td class="nao">Não</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao quem" id="para-quem" aria-labelledby="t-quem">
+      <div class="miolo">
+        <h2 class="titulo" id="t-quem">Para quem o Masterbit Suport foi feito</h2>
+        <div class="colunas">
+          <div class="combina">
+            <h3>Combina com</h3>
+            <ul>
+              <li>Consultores e equipes pequenas de suporte que atendem várias empresas.</li>
+              <li>Quem quer histórico, tempo gasto e soluções num só lugar.</li>
+              <li>Quem precisa separar o que cada pessoa da equipe pode fazer.</li>
+            </ul>
+          </div>
+          <div class="ainda">
+            <h3>Ainda não faz</h3>
+            <ul>
+              <li>Receber chamados sozinho por WhatsApp, e-mail ou portal. Quem atende registra.</li>
+              <li>Enviar lembretes e alertas de prazo.</li>
+              <li>Dar acesso ao cliente final.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao contato" id="contato" aria-labelledby="t-contato">
+      <div class="miolo">
+        <div>
+          <h2 class="titulo" id="t-contato">Conte o que você precisa</h2>
+          <p class="lead">Peça uma demonstração ou mande um problema para resolver. A resposta chega no seu e-mail, sem precisar de WhatsApp.</p>
+          <p class="contato-email">Prefere escrever direto? <a class="link-forte" id="link-email" href="mailto:contato@masterbit.online">contato@masterbit.online</a></p>
+        </div>
+
+        <div>
+          <form class="form-contato" id="form-contato">
+            <div class="duas">
+              <div>
+                <label for="f-nome">Nome</label>
+                <input id="f-nome" name="nome" type="text" required minlength="2" maxlength="120" autocomplete="name">
+              </div>
+              <div>
+                <label for="f-empresa">Empresa <small>(opcional)</small></label>
+                <input id="f-empresa" name="empresa" type="text" maxlength="120" autocomplete="organization">
+              </div>
+            </div>
+            <div class="duas">
+              <div>
+                <label for="f-email">E-mail para a resposta</label>
+                <input id="f-email" name="email" type="email" required maxlength="254" autocomplete="email">
+              </div>
+              <div>
+                <label for="f-telefone">Telefone <small>(opcional)</small></label>
+                <input id="f-telefone" name="telefone" type="tel" maxlength="30" autocomplete="tel">
+              </div>
+            </div>
+            <div>
+              <label for="f-assunto">Assunto</label>
+              <input id="f-assunto" name="assunto" type="text" required minlength="3" maxlength="150">
+            </div>
+            <div>
+              <label for="f-mensagem">O que está acontecendo?</label>
+              <textarea id="f-mensagem" name="mensagem" required minlength="10" maxlength="4000"></textarea>
+            </div>
+            <div class="isca" aria-hidden="true">
+              <label for="f-site">Não preencha este campo</label>
+              <input id="f-site" name="site" type="text" tabindex="-1" autocomplete="off">
+            </div>
+            <button type="submit" id="form-enviar">Enviar pedido</button>
+            <p class="form-aviso" id="form-aviso" role="status" aria-live="polite"></p>
+            <p class="form-nota">Usamos seus dados só para responder a este pedido.</p>
+          </form>
+
+          <div class="form-ok" id="form-ok" role="status" hidden>
+            <h3 id="form-ok-titulo">Pedido enviado</h3>
+            <p id="form-ok-texto"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="miolo">
+      <a href="https://masterbit.online/" aria-label="Masterbit, voltar ao site"><img class="marca-logo" src="masterbit-logo.png" alt="Masterbit" width="113" height="42"></a>
+      <small>Masterbit Suport, © 2026 Masterbit.</small>
+    </div>
+  </footer>
+
+  <script>
+    // Preencha supabaseUrl e supabaseChave para o formulário gravar no sistema
+    // (Solicitações). Os dois valores são públicos: ficam em Supabase, Project Settings,
+    // API (URL do projeto e a Publishable key, que começa com sb_publishable_).
+    // Nunca cole aqui a Secret key nem a service_role.
+    // Enquanto estiverem vazios, o botão abre o programa de e-mail com a mensagem pronta.
+    const CONTATO = {
+      email: "contato@masterbit.online",
+      supabaseUrl: "https://hthtowwhzwmidxbpgjmb.supabase.co",
+      supabaseChave: "sb_publishable_mGHRWRlVzu79iYMQBS8E0Q_apOhbxCa",
+    };
+
+    (function contato() {
+      const form = document.getElementById("form-contato");
+      const aviso = document.getElementById("form-aviso");
+      const botao = document.getElementById("form-enviar");
+      const ok = document.getElementById("form-ok");
+      const link = document.getElementById("link-email");
+      link.href = "mailto:" + CONTATO.email;
+      link.textContent = CONTATO.email;
+
+      const MENSAGENS = {
+        limite_excedido: "Recebemos muitos pedidos agora. Tente de novo em uma hora ou escreva para " + CONTATO.email + ".",
+        dados_invalidos: "Confira os campos: algum está curto, longo ou com e-mail inválido.",
+      };
+
+      function concluir(titulo, texto) {
+        form.hidden = true;
+        document.getElementById("form-ok-titulo").textContent = titulo;
+        document.getElementById("form-ok-texto").textContent = texto;
+        ok.hidden = false;
+        ok.scrollIntoView({ block: "nearest" });
+      }
+
+      function falhar(texto) {
+        aviso.textContent = texto;
+        aviso.className = "form-aviso erro";
+        botao.disabled = false;
+        botao.textContent = "Enviar pedido";
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(form).entries());
+        aviso.textContent = "";
+        aviso.className = "form-aviso";
+
+        // Sem o sistema configurado, a mensagem segue por e-mail comum.
+        if (!CONTATO.supabaseUrl || !CONTATO.supabaseChave) {
+          const corpo = "Nome: " + d.nome + "\nEmpresa: " + (d.empresa || "-") + "\nE-mail: " + d.email +
+            "\nTelefone: " + (d.telefone || "-") + "\n\n" + d.mensagem;
+          location.href = "mailto:" + CONTATO.email + "?subject=" + encodeURIComponent(d.assunto) +
+            "&body=" + encodeURIComponent(corpo);
+          aviso.textContent = "Abrimos o seu programa de e-mail com a mensagem pronta. É só enviar.";
+          return;
+        }
+
+        botao.disabled = true;
+        botao.textContent = "Enviando…";
+
+        fetch(CONTATO.supabaseUrl.replace(/\/$/, "") + "/rest/v1/rpc/registrar_solicitacao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: CONTATO.supabaseChave },
+          body: JSON.stringify({
+            p_nome: d.nome, p_empresa: d.empresa, p_email: d.email, p_telefone: d.telefone,
+            p_assunto: d.assunto, p_descricao: d.mensagem, p_site: d.site,
+          }),
+        }).then(function (r) {
+          if (r.ok) {
+            concluir("Pedido enviado", "Recebemos o seu pedido e vamos responder no e-mail " + d.email + ".");
+            return;
+          }
+          return r.json().catch(function () { return {}; }).then(function (corpo) {
+            falhar(MENSAGENS[corpo.message] || "Não foi possível enviar agora. Escreva para " + CONTATO.email + ".");
+          });
+        }).catch(function () {
+          falhar("Sem conexão com o servidor. Tente de novo ou escreva para " + CONTATO.email + ".");
+        });
+      });
+    })();
+
+    (function demonstracao() {
+      const casos = [
+        {
+          consulta: "erro 539",
+          itens: [
+            { numero: "AT-2025-00112", titulo: "NF-E REJEITADA COM ERRO 539", meta: "Loja Exemplo, resolvido há 3 meses",
+              solucao: "A chave de acesso da nota divergia do XML já autorizado. Conferida a nota no portal da SEFAZ e reenviado o XML com a chave correta.",
+              causa: "Nota reemitida sem cancelar a anterior." },
+            { numero: "AT-2025-00087", titulo: "NOTA REJEITADA AO TRANSMITIR", meta: "Mercado Exemplo, resolvido há 5 meses",
+              solucao: "Consultada a situação da nota na SEFAZ antes de reenviar; o XML já estava autorizado e só precisou ser importado de novo.",
+              causa: "Transmissão repetida após queda de conexão." }
+          ]
+        },
+        {
+          consulta: "impressora fiscal não comunica",
+          itens: [
+            { numero: "AT-2026-00020", titulo: "IMPRESSORA FISCAL NÃO COMUNICA", meta: "Loja Exemplo, resolvido há 1 semana",
+              solucao: "Porta COM do equipamento mudou após a atualização do Windows. Ajustada no cadastro e serviço reiniciado.",
+              causa: "Atualização do sistema operacional renumerou as portas." }
+          ]
+        },
+        {
+          consulta: "SPED bloco H",
+          itens: [
+            { numero: "AT-2025-00141", titulo: "SPED FISCAL SEM INVENTÁRIO", meta: "Distribuidora Exemplo, resolvido há 4 meses",
+              solucao: "O arquivo não trazia o inventário da data de fechamento. Gerado o inventário, regerado o arquivo e reenviado.",
+              causa: "Fechamento feito sem a rotina de inventário." }
+          ]
+        }
+      ];
+
+      const consulta = document.getElementById("consulta");
+      const cursor = document.getElementById("cursor");
+      const resultados = document.getElementById("resultados");
+      const botoes = document.querySelectorAll(".sugestoes button");
+      const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let digitando = null;
+
+      function elemento(tag, classe, texto) {
+        const el = document.createElement(tag);
+        if (classe) el.className = classe;
+        if (texto) el.textContent = texto;
+        return el;
+      }
+
+      function montar(item) {
+        const caso = elemento("article", "caso");
+        const topo = elemento("div", "caso-topo");
+        topo.append(elemento("span", "caso-numero", item.numero), elemento("span", "selo resolvido", "Resolvido"));
+        const lista = elemento("dl");
+        [["Solução", item.solucao], ["Causa raiz", item.causa]].forEach(function (par) {
+          const bloco = elemento("div");
+          bloco.append(elemento("dt", "", par[0]), elemento("dd", "", par[1]));
+          lista.appendChild(bloco);
+        });
+        caso.append(topo, elemento("h3", "", item.titulo), elemento("p", "caso-meta", item.meta), lista);
+        return caso;
+      }
+
+      function mostrar(indice) {
+        resultados.replaceChildren.apply(resultados, casos[indice].itens.map(montar));
+        botoes.forEach(function (botao, i) { botao.setAttribute("aria-pressed", String(i === indice)); });
+      }
+
+      function digitar(texto, aoTerminar) {
+        clearInterval(digitando);
+        let n = 0;
+        cursor.hidden = false;
+        consulta.textContent = "";
+        digitando = setInterval(function () {
+          n += 1;
+          consulta.textContent = texto.slice(0, n);
+          if (n >= texto.length) {
+            clearInterval(digitando);
+            cursor.hidden = true;
+            aoTerminar();
+          }
+        }, 70);
+      }
+
+      botoes.forEach(function (botao) {
+        botao.addEventListener("click", function () {
+          clearInterval(digitando);
+          cursor.hidden = true;
+          const i = Number(botao.dataset.i);
+          consulta.textContent = casos[i].consulta;
+          mostrar(i);
+        });
+      });
+
+      // Um único movimento ao carregar: a consulta é digitada e a solução aparece.
+      if (!reduzir) {
+        resultados.classList.add("aguarde");
+        consulta.textContent = "";
+        cursor.hidden = false;
+        setTimeout(function () {
+          digitar(casos[0].consulta, function () {
+            mostrar(0);
+            resultados.classList.remove("aguarde");
+          });
+        }, 700);
+      }
+    })();
+  
+  // Telas reais: abas com setas, Home e End
+  (function () {
+    var dados = {"dashboard": {"t": "O que está aberto, em andamento e aguardando, com pendências, agenda e últimos atendimentos na mesma tela.", "a": "Painel do Masterbit Suport com contadores de atendimentos e listas de pendências, agenda e aguardando retorno"}, "novo-atendimento": {"t": "Cliente e assunto bastam. O resto (canal, categoria, sistema, prioridade) pode ser preenchido durante o atendimento.", "a": "Formulário de novo atendimento com cliente, canal, assunto, categoria e detalhes"}, "casos-parecidos": {"t": "Digite uma palavra e veja como problemas parecidos foram resolvidos antes, com a solução escrita na hora.", "a": "Busca de casos parecidos já resolvidos, com a solução de cada um"}, "pendencias": {"t": "O que ficou em aberto, de quem depende e para quando, com filtros por status, responsável e prioridade.", "a": "Lista de pendências com filtros de status, responsável e prioridade"}, "agenda": {"t": "Retornos, visitas e reuniões programados, com minicalendário e situação de cada evento.", "a": "Agenda com lista de eventos e minicalendário do mês"}, "relatorios": {"t": "Volume e tempo de suporte no período, por status, prioridade, tipo, canal, cliente e categoria. Exporta CSV.", "a": "Relatórios com totais do período e gráficos de barras por categoria"}, "configuracoes": {"t": "Tema claro, escuro ou automático, perfil e senha. Sistemas, categorias, equipe e auditoria ficam nas outras abas.", "a": "Tela de configurações da conta com aparência, perfil e senha"}};
+    var abas = Array.prototype.slice.call(document.querySelectorAll(".telas-abas [role=tab]"));
+    var img = document.getElementById("tela-img");
+    var leg = document.getElementById("tela-legenda");
+    var painel = document.getElementById("tela-painel");
+    function escolher(b, foco) {
+      abas.forEach(function (x) { var on = x === b; x.setAttribute("aria-selected", on); x.tabIndex = on ? 0 : -1; });
+      var d = dados[b.dataset.k];
+      img.src = "img/" + b.dataset.k + ".webp"; img.alt = d.a; leg.textContent = d.t;
+      painel.setAttribute("aria-labelledby", b.id);
+      if (foco) b.focus();
+    }
+    abas.forEach(function (b, i) {
+      b.addEventListener("click", function () { escolher(b, false); });
+      b.addEventListener("keydown", function (e) {
+        var n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: abas.length - 1 }[e.key];
+        if (n === undefined) return;
+        e.preventDefault(); escolher(abas[(n + abas.length) % abas.length], true);
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

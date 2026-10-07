@@ -11,7 +11,7 @@ import { NAVEGACAO } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
 
 /** Navegação para telas estreitas, onde a sidebar fica oculta. */
-export function MobileNav() {
+export function MobileNav({ solicitacoesNovas = 0 }: { solicitacoesNovas?: number }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
 
@@ -62,6 +62,14 @@ export function MobileNav() {
                           >
                             <item.icone className="size-4 shrink-0" />
                             {item.titulo}
+                            {item.href === "/solicitacoes" && solicitacoesNovas > 0 ? (
+                              <span
+                                className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground tabular-nums"
+                                aria-label={`${solicitacoesNovas} novas`}
+                              >
+                                {solicitacoesNovas}
+                              </span>
+                            ) : null}
                           </Link>
                         </Dialog.Close>
                       </li>

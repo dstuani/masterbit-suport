@@ -83,6 +83,7 @@ async function main() {
     "consultoria_topicos",
     "consultoria_comentarios",
     "consultoria_anexos",
+    "solicitacoes",
   ];
 
   const { rows } = await db.query(

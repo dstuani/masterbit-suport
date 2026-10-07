@@ -8,6 +8,7 @@ import {
   Settings,
   BarChart3,
   Building2,
+  Inbox,
   Presentation,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +24,7 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
     secao: "Operação",
     itens: [
       { titulo: "Dashboard", href: "/dashboard", icone: LayoutDashboard },
+      { titulo: "Solicitações", href: "/solicitacoes", icone: Inbox },
       { titulo: "Atendimentos", href: "/atendimentos", icone: ClipboardList },
       { titulo: "Pendências", href: "/pendencias", icone: ListChecks },
       { titulo: "Agenda", href: "/agenda", icone: CalendarDays },

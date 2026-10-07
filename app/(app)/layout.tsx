@@ -2,16 +2,18 @@ import { supabaseConfigurado } from "@/lib/env";
 import { exigirUsuario, podeEscreverAgora } from "@/lib/auth";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { contarSolicitacoesNovas } from "@/lib/services/solicitacoes";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await exigirUsuario();
   const podeEditar = await podeEscreverAgora();
+  const solicitacoesNovas = supabaseConfigurado ? await contarSolicitacoesNovas() : 0;
 
   return (
     <div className="flex h-dvh">
-      <Sidebar />
+      <Sidebar solicitacoesNovas={solicitacoesNovas} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header email={user?.email ?? null} podeEditar={podeEditar} />
+        <Header email={user?.email ?? null} podeEditar={podeEditar} solicitacoesNovas={solicitacoesNovas} />
         {!supabaseConfigurado ? (
           <div className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
             Supabase não configurado — modo de visualização. Preencha{" "}

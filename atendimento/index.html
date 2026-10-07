@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitar atendimento | Masterbit</title>
+  <meta name="description" content="Conte o que está acontecendo com a TI da sua empresa. A Masterbit recebe o pedido e responde no seu e-mail.">
+  <meta property="og:title" content="Solicitar atendimento | Masterbit">
+  <meta property="og:description" content="Conte o problema. A resposta chega no seu e-mail.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#F3F6F8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Literata:opsz,wght@7..72,300..900&display=swap">
+
+  <style>
+    :root {
+      --tinta: #0e1b26;
+      --tinta-2: #26394a;
+      --grafite: #566677;
+      --nevoa: #dce4e9;
+      --papel: #f3f6f8;
+      --branco: #ffffff;
+      --laranja: #f47b36;
+      --laranja-forte: #e86a22;
+      --laranja-texto: #b84a12;
+      --erro: #a3201a;
+      --titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+      --texto: "Literata", Georgia, "Times New Roman", serif;
+      --margem: clamp(1rem, 4vw, 2.5rem);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; min-height: 100dvh; display: flex; flex-direction: column;
+      background: var(--papel); color: var(--tinta);
+      font-family: var(--texto); font-size: 1.0625rem; line-height: 1.65;
+    }
+    [hidden] { display: none !important; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; }
+    h1, h2, h3, p, ol, dl, dd { margin: 0; }
+    ol { padding: 0; list-style: none; }
+
+    :focus-visible { outline: 3px solid var(--laranja-texto); outline-offset: 3px; border-radius: 4px; }
+    .pular { position: absolute; left: -999px; top: 0; z-index: 10; background: var(--tinta); color: var(--branco); padding: .75rem 1rem; }
+    .pular:focus { left: 0; }
+
+    .miolo { width: min(1120px, 100% - 2 * var(--margem)); margin-inline: auto; }
+
+    /* Cabeçalho */
+    .topo { padding-block: 1.1rem; }
+    .topo .miolo { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+    .marca-logo { height: 60px; width: auto; }
+    .voltar { font-family: var(--titulo); font-weight: 500; font-size: .95rem; color: var(--tinta-2); text-decoration: none; }
+    .voltar:hover { color: var(--tinta); text-decoration: underline; text-decoration-color: var(--laranja); text-underline-offset: 5px; }
+
+    /* Corpo: texto à esquerda, ficha à direita */
+    main { flex: 1; padding-block: clamp(.5rem, 1.5vw, 1.25rem) clamp(2.5rem, 6vw, 5rem); }
+    main .miolo {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: clamp(2rem, 5vw, 4.5rem); align-items: start;
+    }
+    h1 {
+      font-family: var(--titulo); font-weight: 700; font-variation-settings: "wdth" 88;
+      font-size: clamp(2.4rem, 5.6vw, 4rem); line-height: 1.02; letter-spacing: -0.025em; text-wrap: balance;
+    }
+    .lead { margin-top: 1.4rem; max-width: 40ch; font-size: 1.125rem; color: var(--tinta-2); }
+
+    .depois { margin-top: clamp(2rem, 5vw, 3rem); max-width: 40ch; }
+    .depois h2 { font-family: var(--titulo); font-weight: 650; font-size: 1.15rem; letter-spacing: -0.01em; margin-bottom: 1rem; }
+    .depois ol { display: grid; gap: 1rem; counter-reset: passo; }
+    .depois li { counter-increment: passo; position: relative; padding-left: 2.6rem; color: var(--tinta-2); }
+    .depois li::before {
+      content: counter(passo); position: absolute; left: 0; top: .05rem;
+      width: 1.75rem; height: 1.75rem; border-radius: 50%;
+      display: grid; place-items: center;
+      font: 650 .9rem/1 var(--titulo); color: var(--tinta); background: var(--laranja);
+    }
+    .email-direto { margin-top: 2rem; font-family: var(--titulo); color: var(--tinta-2); }
+    .link-forte { font-family: var(--titulo); font-weight: 600; color: var(--tinta); text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: var(--laranja); }
+    .link-forte:hover { text-decoration-color: var(--tinta); }
+
+    /* A ficha do chamado */
+    .ficha {
+      position: relative; background: var(--branco);
+      border: 1px solid #c4d0d9; border-top: 0; border-radius: 6px 6px 14px 14px;
+      box-shadow: 0 22px 44px -28px rgba(14,27,38,.5);
+    }
+    .ficha::before { content: ""; position: absolute; inset: -1px -1px auto -1px; height: 8px; border-radius: 6px 6px 0 0; background: var(--laranja); }
+    .ficha-topo { padding: 1.6rem clamp(1.1rem, 3vw, 1.75rem) 1.25rem; }
+    .ficha-topo h2 { font-family: var(--titulo); font-weight: 650; font-size: 1.35rem; letter-spacing: -0.01em; line-height: 1.2; }
+    .ficha-topo p { margin-top: .3rem; font-family: var(--titulo); font-size: .95rem; color: var(--grafite); }
+    .picote { position: relative; border-top: 2px dashed var(--nevoa); }
+    .picote::before, .picote::after {
+      content: ""; position: absolute; top: -11px; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--papel); border: 1px solid #c4d0d9;
+    }
+    .picote::before { left: -11px; clip-path: inset(0 0 0 50%); }
+    .picote::after { right: -11px; clip-path: inset(0 50% 0 0); }
+
+    form { display: grid; gap: 1.1rem; padding: 1.5rem clamp(1.1rem, 3vw, 1.75rem) 1.75rem; font-family: var(--titulo); }
+    .duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
+    label, .rotulo { display: block; font-size: .9rem; font-weight: 600; color: var(--tinta-2); margin-bottom: .35rem; }
+    label small { font-weight: 400; color: var(--grafite); }
+    input, textarea {
+      width: 100%; font: 500 1rem/1.4 var(--titulo); color: var(--tinta);
+      background: var(--papel); border: 1px solid #b9c7d1; border-radius: 10px; padding: .75rem .9rem;
+    }
+    textarea { min-height: 9rem; resize: vertical; }
+    input:focus-visible, textarea:focus-visible { outline: 3px solid var(--laranja-texto); outline-offset: 1px; border-color: var(--laranja-texto); background: var(--branco); }
+    .dica { margin-top: .35rem; font-size: .85rem; color: var(--grafite); }
+
+    .tipos { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .tipos button {
+      font: 500 .9rem/1 var(--titulo); cursor: pointer; padding: .55rem .85rem; border-radius: 999px;
+      background: transparent; color: var(--tinta-2); border: 1px solid #b9c7d1;
+      transition: background-color .15s ease;
+    }
+    .tipos button:hover { background: var(--nevoa); }
+    .tipos button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--branco); }
+
+    .enviar {
+      justify-self: start; border: 0; cursor: pointer; font: 650 1.05rem/1.2 var(--titulo);
+      padding: .95rem 1.5rem; border-radius: 10px; background: var(--laranja); color: var(--tinta);
+      transition: background-color .15s ease;
+    }
+    .enviar:hover { background: var(--laranja-forte); }
+    .enviar[disabled] { opacity: .6; cursor: progress; }
+    .aviso { font-size: .95rem; }
+    .aviso:empty { display: none; }
+    .aviso.erro { color: var(--erro); font-weight: 600; }
+    .nota { font-size: .85rem; color: var(--grafite); max-width: 52ch; }
+    .isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+    /* Comprovante: aparece no lugar do formulário */
+    .comprovante { padding: 1.5rem clamp(1.1rem, 3vw, 1.75rem) 1.75rem; font-family: var(--titulo); animation: imprimir .7s cubic-bezier(.2,.7,.2,1) both; }
+    .comprovante[hidden] { display: none; }
+    .comprovante h2 { font-weight: 650; font-size: 1.35rem; letter-spacing: -0.01em; }
+    .comprovante h2:focus { outline: none; }
+    .comprovante .resumo { margin-top: 1.1rem; display: grid; gap: .85rem; }
+    .comprovante dt { font-size: .8rem; font-weight: 600; color: var(--grafite); }
+    .comprovante dd { margin-top: .1rem; font-weight: 500; overflow-wrap: anywhere; }
+    .comprovante .resposta { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--nevoa); color: var(--tinta-2); }
+    .comprovante .outro {
+      margin-top: 1.25rem; cursor: pointer; font: 600 .95rem/1.2 var(--titulo); color: var(--tinta);
+      background: transparent; border: 1px solid #b9c7d1; border-radius: 10px; padding: .7rem 1.1rem;
+    }
+    .comprovante .outro:hover { background: var(--nevoa); }
+    @keyframes imprimir { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+
+    .rodape { padding-block: 1.75rem 2rem; border-top: 1px solid var(--nevoa); }
+    .rodape .miolo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem 1.5rem; font-family: var(--titulo); font-size: .9rem; color: var(--grafite); }
+
+    @media (max-width: 900px) {
+      main .miolo { grid-template-columns: minmax(0, 1fr); }
+      .lead, .depois { max-width: 60ch; }
+    }
+    @media (max-width: 560px) {
+      .duas { grid-template-columns: minmax(0, 1fr); }
+      .marca-logo { height: 48px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .comprovante { animation: none; }
+      .enviar, .tipos button { transition: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="pular" href="#ficha">Pular para o formulário</a>
+
+  <header class="topo">
+    <div class="miolo">
+      <a href="https://masterbit.online/" aria-label="Masterbit, ir para o site"><img class="marca-logo" src="masterbit-logo.png" alt="Masterbit" width="162" height="60"></a>
+      <a class="voltar" href="https://masterbit.online/">Ir para o site</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="miolo">
+      <div>
+        <h1>Conte o que está acontecendo.</h1>
+        <p class="lead">Descreva o problema com as suas palavras. A resposta chega no e-mail que você informar.</p>
+
+        <section class="depois" aria-labelledby="t-depois">
+          <h2 id="t-depois">Depois que você enviar</h2>
+          <ol>
+            <li>Recebemos o seu pedido.</li>
+            <li>Lemos e respondemos no seu e-mail.</li>
+            <li>Se for preciso acesso remoto ou visita, combinamos por lá.</li>
+          </ol>
+        </section>
+
+        <p class="email-direto">Prefere escrever direto? <a class="link-forte" id="link-email" href="mailto:contato@masterbit.online">contato@masterbit.online</a></p>
+      </div>
+
+      <div class="ficha" id="ficha" tabindex="-1">
+        <div class="ficha-topo">
+          <h2>Novo pedido de atendimento</h2>
+          <p>Os campos sem “opcional” são necessários para responder.</p>
+        </div>
+        <div class="picote" aria-hidden="true"></div>
+
+        <form id="form">
+          <div class="duas">
+            <div>
+              <label for="f-nome">Nome</label>
+              <input id="f-nome" name="nome" type="text" required minlength="2" maxlength="120" autocomplete="name">
+            </div>
+            <div>
+              <label for="f-empresa">Empresa <small>(opcional)</small></label>
+              <input id="f-empresa" name="empresa" type="text" maxlength="120" autocomplete="organization">
+            </div>
+          </div>
+          <div class="duas">
+            <div>
+              <label for="f-email">E-mail para a resposta</label>
+              <input id="f-email" name="email" type="email" required maxlength="254" autocomplete="email">
+            </div>
+            <div>
+              <label for="f-telefone">Telefone <small>(opcional)</small></label>
+              <input id="f-telefone" name="telefone" type="tel" maxlength="30" autocomplete="tel">
+            </div>
+          </div>
+
+          <div>
+            <span class="rotulo" id="r-tipos">Sobre o que é?</span>
+            <div class="tipos" role="group" aria-labelledby="r-tipos">
+              <button type="button" aria-pressed="false">Sistema de gestão (ERP)</button>
+              <button type="button" aria-pressed="false">Rede ou internet</button>
+              <button type="button" aria-pressed="false">Servidor</button>
+              <button type="button" aria-pressed="false">Backup</button>
+              <button type="button" aria-pressed="false">Computador</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="f-assunto">Assunto</label>
+            <input id="f-assunto" name="assunto" type="text" required minlength="3" maxlength="150">
+          </div>
+          <div>
+            <label for="f-mensagem">O que está acontecendo?</label>
+            <textarea id="f-mensagem" name="mensagem" required minlength="10" maxlength="4000" aria-describedby="d-mensagem"></textarea>
+            <p class="dica" id="d-mensagem">Se puder, inclua a mensagem de erro, o equipamento ou sistema e desde quando acontece.</p>
+          </div>
+
+          <div class="isca" aria-hidden="true">
+            <label for="f-site">Não preencha este campo</label>
+            <input id="f-site" name="site" type="text" tabindex="-1" autocomplete="off">
+          </div>
+
+          <button class="enviar" type="submit" id="enviar">Enviar pedido</button>
+          <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+          <p class="nota">Usamos seus dados só para responder a este pedido.</p>
+        </form>
+
+        <div class="comprovante" id="comprovante" hidden>
+          <h2 id="c-titulo" tabindex="-1">Pedido enviado</h2>
+          <dl class="resumo">
+            <div><dt>Nome</dt><dd id="c-nome"></dd></div>
+            <div><dt>Assunto</dt><dd id="c-assunto"></dd></div>
+            <div><dt>Enviado em</dt><dd id="c-quando"></dd></div>
+          </dl>
+          <p class="resposta">Vamos responder no e-mail <strong id="c-email"></strong>.</p>
+          <button class="outro" type="button" id="outro">Enviar outro pedido</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rodape">
+    <div class="miolo">
+      <span>Masterbit Informática</span>
+      <a class="link-forte" href="https://masterbit.online/">masterbit.online</a>
+    </div>
+  </footer>
+
+  <script>
+    // Os dois valores do Supabase são públicos (URL do projeto e Publishable key,
+    // sb_publishable_…). Nunca cole aqui a Secret key nem a service_role.
+    // Se ficarem vazios, o botão abre o programa de e-mail com a mensagem pronta.
+    const CONTATO = {
+      email: "contato@masterbit.online",
+      supabaseUrl: "https://hthtowwhzwmidxbpgjmb.supabase.co",
+      supabaseChave: "sb_publishable_mGHRWRlVzu79iYMQBS8E0Q_apOhbxCa",
+    };
+
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const form = $("form"), aviso = $("aviso"), botao = $("enviar"), comp = $("comprovante");
+      const assunto = $("f-assunto");
+      const chips = Array.prototype.slice.call(document.querySelectorAll(".tipos button"));
+
+      $("link-email").href = "mailto:" + CONTATO.email;
+      $("link-email").textContent = CONTATO.email;
+
+      // Os tipos preenchem o início do assunto; o que a pessoa já digitou depois fica.
+      let prefixo = "";
+      chips.forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          const novo = chip.getAttribute("aria-pressed") === "true" ? "" : chip.textContent + ": ";
+          const resto = prefixo && assunto.value.indexOf(prefixo) === 0 ? assunto.value.slice(prefixo.length) : assunto.value;
+          assunto.value = novo + resto;
+          prefixo = novo;
+          chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip && novo ? "true" : "false"); });
+          assunto.focus();
+          assunto.setSelectionRange(assunto.value.length, assunto.value.length);
+        });
+      });
+
+      const MENSAGENS = {
+        limite_excedido: "Recebemos muitos pedidos agora. Tente de novo em uma hora ou escreva para " + CONTATO.email + ".",
+        dados_invalidos: "Confira os campos: algum está curto, longo ou com e-mail inválido.",
+      };
+
+      function falhar(texto) {
+        aviso.textContent = texto;
+        aviso.className = "aviso erro";
+        botao.disabled = false;
+        botao.textContent = "Enviar pedido";
+      }
+
+      function concluir(d) {
+        $("c-nome").textContent = d.nome;
+        $("c-assunto").textContent = d.assunto;
+        $("c-quando").textContent = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        $("c-email").textContent = d.email;
+        form.hidden = true;
+        comp.hidden = false;
+        $("c-titulo").focus();
+        $("ficha").scrollIntoView({ block: "nearest" });
+      }
+
+      $("outro").addEventListener("click", function () {
+        form.reset();
+        prefixo = "";
+        chips.forEach(function (c) { c.setAttribute("aria-pressed", "false"); });
+        aviso.textContent = "";
+        botao.disabled = false;
+        botao.textContent = "Enviar pedido";
+        comp.hidden = true;
+        form.hidden = false;
+        $("f-nome").focus();
+      });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(form).entries());
+        aviso.textContent = "";
+        aviso.className = "aviso";
+
+        if (!CONTATO.supabaseUrl || !CONTATO.supabaseChave || CONTATO.supabaseChave === "SUBSTITUIR_PELA_CHAVE") {
+          const corpo = "Nome: " + d.nome + "\nEmpresa: " + (d.empresa || "-") + "\nE-mail: " + d.email +
+            "\nTelefone: " + (d.telefone || "-") + "\n\n" + d.mensagem;
+          location.href = "mailto:" + CONTATO.email + "?subject=" + encodeURIComponent(d.assunto) +
+            "&body=" + encodeURIComponent(corpo);
+          aviso.textContent = "Abrimos o seu programa de e-mail com a mensagem pronta. É só enviar.";
+          return;
+        }
+
+        botao.disabled = true;
+        botao.textContent = "Enviando…";
+
+        fetch(CONTATO.supabaseUrl.replace(/\/$/, "") + "/rest/v1/rpc/registrar_solicitacao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: CONTATO.supabaseChave },
+          body: JSON.stringify({
+            p_nome: d.nome, p_empresa: d.empresa, p_email: d.email, p_telefone: d.telefone,
+            p_assunto: d.assunto, p_descricao: d.mensagem, p_site: d.site,
+          }),
+        }).then(function (r) {
+          if (r.ok) { concluir(d); return; }
+          return r.json().catch(function () { return {}; }).then(function (corpo) {
+            falhar(MENSAGENS[corpo.message] || "Não foi possível enviar agora. Escreva para " + CONTATO.email + ".");
+          });
+        }).catch(function () {
+          falhar("Sem conexão com o servidor. Tente de novo ou escreva para " + CONTATO.email + ".");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

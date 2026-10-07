@@ -32,10 +32,12 @@ export function FormularioAtendimento({
   opcoes,
   clienteInicial,
   tituloInicial,
+  descricaoInicial,
 }: {
   opcoes: Opcoes;
   clienteInicial?: string;
   tituloInicial?: string;
+  descricaoInicial?: string;
 }) {
   const [estado, acao, pendente] = useActionState(criarAtendimentoAction, estadoInicial);
   const [titulo, setTitulo] = useState((tituloInicial ?? "").toUpperCase());
@@ -226,7 +228,7 @@ export function FormularioAtendimento({
             dica="O que o cliente relatou, com as palavras dele."
             className="sm:col-span-3"
           >
-            <Textarea id="descricao" name="descricao" />
+            <Textarea id="descricao" name="descricao" defaultValue={descricaoInicial} />
             <Mensagem texto={erroDe("descricao")} />
           </Campo>
         </CardContent>

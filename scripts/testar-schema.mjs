@@ -547,6 +547,64 @@ async function main() {
     pendSobrevive.length === 1 && pendSobrevive[0].atendimento_id === null,
   );
 
+  // ── Solicitações: porta pública do formulário da landing ──
+  const chamar = (nome, email = "ana@empresa.com.br", extra = "null") =>
+    db.exec(
+      `select registrar_solicitacao('${nome}', 'Empresa', '${email}', '11 99999-0000',
+                                    'Impressora parou', 'A impressora fiscal não imprime desde cedo.', ${extra})`,
+    );
+
+  await chamar("Ana Souza");
+  const { rows: sol } = await db.query(
+    `select org_id, status, email from solicitacoes where nome = 'Ana Souza'`,
+  );
+  verificar(
+    "formulário público grava solicitação nova na organização",
+    sol.length === 1 && sol[0].status === "nova" && sol[0].org_id === orgId,
+  );
+
+  await chamar("Robô Spam", "robo@spam.com", "'http://spam.example'");
+  const { rows: robo } = await db.query(`select 1 from solicitacoes where nome = 'Robô Spam'`);
+  verificar("campo-armadilha preenchido não grava nada", robo.length === 0);
+
+  await deveRejeitar(
+    db,
+    "recusa e-mail inválido",
+    `select registrar_solicitacao('Beto', null, 'sem-arroba', null, 'Assunto ok', 'Descrição com tamanho ok', null)`,
+    "dados_invalidos",
+  );
+  await deveRejeitar(
+    db,
+    "recusa descrição curta demais",
+    `select registrar_solicitacao('Beto', null, 'beto@x.com', null, 'Assunto ok', 'curta', null)`,
+    "dados_invalidos",
+  );
+
+  await chamar("Ana Souza");
+  await chamar("Ana Souza");
+  await deveRejeitar(
+    db,
+    "freia o 4º envio do mesmo e-mail em uma hora",
+    `select registrar_solicitacao('Ana Souza', null, 'ANA@empresa.com.br', null, 'Assunto ok', 'Descrição com tamanho ok', null)`,
+    "limite_excedido",
+  );
+
+  await deveRejeitar(
+    db,
+    "conteúdo enviado pelo cliente não pode ser editado",
+    `update solicitacoes set descricao = 'reescrita' where nome = 'Ana Souza'`,
+    "não pode ser alterado",
+  );
+
+  await db.exec(`update solicitacoes set status = 'tratada' where id = (select id from solicitacoes limit 1)`);
+  const { rows: tratada } = await db.query(
+    `select tratada_por, tratada_em from solicitacoes where status = 'tratada'`,
+  );
+  verificar(
+    "tratar registra quem e quando",
+    tratada.length === 1 && tratada[0].tratada_por === userId && tratada[0].tratada_em !== null,
+  );
+
   await db.close();
 
   console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);

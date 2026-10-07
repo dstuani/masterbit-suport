@@ -87,6 +87,14 @@ Sem as chaves do Supabase, o app sobe em **modo de visualização** (só em
 desenvolvimento): navega pelo shell, sem login nem dados. Em produção, o `proxy.ts`
 devolve erro 500 de propósito.
 
+**Recuperação de senha (configuração no painel, não no código):** em Authentication →
+URL Configuration do Supabase, o endereço `{NEXT_PUBLIC_APP_URL}/auth/confirmar` precisa
+estar em *Redirect URLs* (um para dev e um para produção) e o *Site URL* deve ser o
+endereço de produção. Sem isso o link do e-mail volta para o lugar errado. O envio
+padrão do Supabase tem limite muito baixo de e-mails por hora; para uso real configure
+SMTP próprio (Authentication → Emails → SMTP). O link só funciona no mesmo navegador
+que pediu a recuperação (fluxo PKCE).
+
 **Primeiro acesso:** não há tela de cadastro. Crie o usuário no painel do Supabase
 (Authentication → Users → Add user, marcando *Auto Confirm*). O primeiro usuário vira
 `owner` e ganha a organização. Os seguintes entram como `tecnico` **desativado** e só
@@ -121,9 +129,15 @@ app/
 ├── globals.css             tokens de cor (claro/escuro) e mapeamento para o Tailwind
 ├── page.tsx                redireciona para /dashboard
 ├── (auth)/login/           tela de login + Server Action entrar()/sair()
+├── (auth)/recuperar-senha/ pede o link por e-mail (resposta igual exista a conta ou não)
+├── (auth)/nova-senha/      define a nova senha (exige a sessão aberta pelo link)
+├── auth/confirmar/route.ts GET: troca o ?code= do e-mail por sessão e vai a /nova-senha
 ├── sair/route.ts           GET: encerra a sessão e volta ao login (?motivo=inativo)
+├── error.tsx, global-error.tsx, not-found.tsx    telas de erro/404 (raiz)
 ├── (app)/                  área autenticada (layout com Sidebar + Header)
+│   ├── error.tsx, not-found.tsx    erro e 404 dentro do layout (menu continua)
 │   ├── dashboard/
+│   ├── solicitacoes/       caixa de entrada do formulário da landing (triagem)
 │   ├── atendimentos/       lista, novo, [id] (detalhe) — o núcleo do sistema
 │   ├── clientes/           lista, novo, [id] (abas), [id]/editar, [id]/importar
 │   ├── pendencias/         lista, nova
@@ -156,6 +170,13 @@ lib/
 supabase/migrations/   SQL versionado — única fonte da verdade do banco
 scripts/               validar-migrations, testar-schema, gerar-tipos, testar-formularios
 proxy.ts               o "middleware" do Next 16: renova sessão e manda para /login
+landing/                página de apresentação estática (HTML único), fora do app Next. O formulário
+                         de contato grava no sistema (veja Solicitações); URL e chave pública do
+                         Supabase, e o e-mail, ficam no objeto CONTATO, no fim do index.html.
+atendimento/             página só do formulário de pedido de atendimento, para um subdomínio
+                         próprio; mesma função registrar_solicitacao e mesmo objeto CONTATO.
+                         Preview: configuração "atendimento" (porta 4200)
+                         Preview: preview_start com a configuração "landing" (porta 4100)
 public/masterbit-logo.png
 ```
 
@@ -174,6 +195,7 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | Tela | O que faz | Liga com |
 |---|---|---|
 | **Dashboard** | contadores (abertos, em andamento, aguardando, resolvidos no mês) e 3 colunas: Pendências, Agenda (próximos 30 dias), Aguardando retorno; abaixo, Últimos atendimentos (só em aberto) | contadores levam a `/atendimentos?status=…` |
+| **Solicitações** | pedidos do formulário do site, novas primeiro (selo com a contagem no menu). Responder por e-mail (mailto com o assunto), abrir atendimento (assunto e descrição já preenchidos), marcar como tratada ou descartar | `/atendimentos/novo?titulo=&descricao=` |
 | **Atendimentos** (lista) | sem parâmetros abre filtrado em **Em aberto**; `status=todos` mostra tudo. Busca por número, assunto, cliente e — com 3+ letras — por descrição, solução e texto do histórico | `/atendimentos/[id]` |
 | **Novo atendimento** | cliente + assunto (sempre em MAIÚSCULAS) bastam; aceita `?cliente=` e `?titulo=` | selects de filial/contato/sistema vêm da API `/api/clientes/[id]/contexto` |
 | **Detalhe do atendimento** | assunto editável (lápis); caixa "o que foi feito" com anexo junto da nota (clipe, arrastar, Ctrl+V); timeline; status; resolver (exige solução); responsável; card de anexos; pendências | botões levam a `/pendencias/nova?atendimento=` e `/agenda/novo?atendimento=` |
@@ -194,7 +216,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-19 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
+20 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -214,6 +236,8 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               │
               ├─ consultoria_projetos ── consultoria_topicos ─┬─ consultoria_comentarios
               │                                               └─ consultoria_anexos
+              ├─ solicitacoes (formulário público da landing; só a função
+              │               registrar_solicitacao() cria linhas)
               └─ audit_logs   (preenchida só por trigger)
 
 view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
@@ -243,6 +267,12 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
   consultoria_topicos gravam em `audit_logs` (só o owner lê).
 - **Constraints com mensagem em português:** `lib/services/erros.ts` traduz o nome da
   constraint. Constraint nova → acrescentar lá.
+
+- **Solicitações (formulário público):** a tabela não tem policy de INSERT nem de DELETE.
+  Quem não tem conta grava pela função `registrar_solicitacao` (SECURITY DEFINER), liberada
+  ao papel `anon`: valida tamanhos e e-mail, ignora quem preenche o campo-armadilha `p_site`,
+  freia 3 envios por e-mail e 30 no total por hora, e usa a primeira organização. O
+  conteúdo enviado nunca é editável; só o status muda (e o trigger registra quem tratou).
 
 ### Storage
 
@@ -402,12 +432,24 @@ português, curtos.
 15. **`xlsx` 0.18.5:** é a última versão no npm, que tem vulnerabilidades conhecidas; as
     correções só existem no CDN da SheetJS. Hoje lê só arquivos que o próprio usuário
     escolhe, no navegador.
-16. **Lacunas conhecidas:**
-    - não há botão de sair (a rota `GET /sair` encerra a sessão e o `proxy.ts` a deixa
-      passar sem desvio, mas nada na interface aponta para ela; a action `sair()` segue
-      sem uso);
-    - o `proxy.ts` lista `/recuperar-senha` e `/nova-senha`, rotas que não existem;
-    - não há `error.tsx` em nenhuma rota.
+16. **Sessão, recuperação e erros (resolvido em 03/10/2026):** o botão Sair do cabeçalho
+    usa a action `sair()`; a rota `GET /sair` serve ao desvio de conta desativada. No
+    `proxy.ts`, `/sair` e `/auth/confirmar` passam sem desvio, e `/nova-senha` exige sessão
+    mas **não** está em `ROTAS_PUBLICAS` — pôr lá faria o proxy tirar do formulário quem
+    chegou pelo link (logado pela sessão de recuperação). `/auth/confirmar` tem destino
+    fixo; nunca faça o destino depender da URL (redirecionamento aberto). Em
+    `error.tsx` a função de tentar de novo se chama `retry` nesta versão do Next, não
+    `reset`. `global-error.tsx` não recebe o CSS global — o estilo é inline.
 17. **Sem uso, mas presentes:** `lib/supabase/client.ts`, `components/layout/placeholder.tsx`
     e as dependências listadas na seção 2. O `README.md` está atrás do código (fala em
     14 tabelas e não cita Casos parecidos nem Consultoria).
+18. **Formulário público (migration `20261006120000`).** É a única escrita aberta a quem não
+    está logado. Pontos de atenção: (a) `registrar_solicitacao` precisa continuar sem policy
+    de INSERT para `anon` na tabela — nunca troque a função por uma policy; (b) os códigos de
+    erro (`dados_invalidos`, `limite_excedido`, `sem_organizacao`) são lidos por
+    `landing/index.html`; (c) a chave que a landing carrega é a **Publishable** (pública por
+    desenho), nunca a Secret nem a service_role; (d) o freio global (30 por hora) deixa uma
+    enxurrada bloquear o formulário por até uma hora — nada é perdido; (e) o texto vem de
+    estranhos: a tela exibe como texto puro (`whitespace-pre-wrap`), nunca como HTML;
+    (f) a assinatura da função não aparece nos tipos gerados — mudar o SQL não quebra o
+    TypeScript, quebra a landing em execução.

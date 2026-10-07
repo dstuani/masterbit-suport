@@ -7,7 +7,7 @@ import { Logo } from "@/components/layout/logo";
 import { NAVEGACAO } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
 
-export function Sidebar() {
+export function Sidebar({ solicitacoesNovas = 0 }: { solicitacoesNovas?: number }) {
   const pathname = usePathname();
 
   return (
@@ -38,6 +38,14 @@ export function Sidebar() {
                     >
                       <item.icone className="size-4 shrink-0" />
                       {item.titulo}
+                      {item.href === "/solicitacoes" && solicitacoesNovas > 0 ? (
+                        <span
+                          className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground tabular-nums"
+                          aria-label={`${solicitacoesNovas} novas`}
+                        >
+                          {solicitacoesNovas}
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 );

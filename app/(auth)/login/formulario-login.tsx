@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 
 import { entrar, type EstadoLogin } from "./actions";
 import { Logo } from "@/components/layout/logo";
@@ -36,6 +37,9 @@ export function FormularioLogin({ de, aviso }: { de: string; aviso: string | nul
               autoComplete="current-password"
               required
             />
+            <Link href="/recuperar-senha" className="self-end text-xs text-muted-foreground hover:underline">
+              Esqueci minha senha
+            </Link>
           </div>
 
           {(estado.erro ?? aviso) ? (
