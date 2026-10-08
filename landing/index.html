@@ -237,25 +237,6 @@
     .telas-legenda { margin-top: 1rem; max-width: 62ch; color: var(--tinta-2); min-height: 3.3em; }
     .telas-aviso { margin-top: .5rem; font-family: var(--titulo); font-size: .85rem; color: var(--grafite); }
 
-    /* Consultoria */
-    .consultoria .miolo {
-      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-      gap: clamp(2rem, 5vw, 4.5rem); align-items: center;
-    }
-    .consultoria .lead { margin-top: 1rem; }
-    .topicos { background: var(--branco); border: 1px solid var(--nevoa); border-radius: 12px; padding: 1.2rem 1.3rem; font-family: var(--titulo); }
-    .topico { padding-block: .85rem; border-bottom: 1px solid var(--nevoa); }
-    .topico:first-child { padding-top: 0; }
-    .topico-linha { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-weight: 550; }
-    .barra { margin-top: .6rem; display: flex; align-items: center; gap: .7rem; font-size: .85rem; color: var(--grafite); }
-    .barra-trilho { flex: 1; height: 8px; border-radius: 99px; background: var(--nevoa); overflow: hidden; }
-    .barra-preenchida { height: 100%; border-radius: 99px; background: var(--laranja); }
-    .barra-preenchida.completa { background: #1f9d63; }
-    .barra b { width: 2.6rem; text-align: right; color: var(--tinta); font-weight: 600; }
-    .topicos-geral { padding-top: 1rem; }
-    .topicos-geral .topico-linha { font-weight: 650; }
-    .topicos-geral small { display: block; margin-top: .35rem; color: var(--grafite); font-size: .85rem; font-weight: 400; }
-
     /* Equipe: faixa escura */
     .equipe { background: var(--tinta); color: #e6edf2; }
     .equipe .miolo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
@@ -326,7 +307,7 @@
     .rodape small { font-family: var(--titulo); color: var(--grafite); font-size: .9rem; }
 
     @media (max-width: 960px) {
-      .abertura .miolo, .consultoria .miolo, .equipe .miolo, .contato .miolo { grid-template-columns: minmax(0, 1fr); }
+      .abertura .miolo, .equipe .miolo, .contato .miolo { grid-template-columns: minmax(0, 1fr); }
       .menu a:not(.btn) { display: none; }
     }
     @media (max-width: 720px) {
@@ -356,7 +337,6 @@
       <nav class="menu" aria-label="Seções da página">
         <a href="#como-funciona">Como funciona</a>
         <a href="#telas">Telas</a>
-        <a href="#consultoria">Consultoria</a>
         <a href="#equipe">Equipe</a>
         <a href="#para-quem">Para quem é</a>
         <a class="btn pequeno" href="#contato">Pedir demonstração</a>
@@ -522,41 +502,13 @@
       </div>
     </section>
 
-    <section class="secao consultoria" id="consultoria" aria-labelledby="t-consultoria">
-      <div class="miolo">
-        <div>
-          <h2 class="titulo" id="t-consultoria">Projetos de consultoria, tópico por tópico</h2>
-          <p class="lead">Divida o escopo em tópicos. Cada um tem status, progresso de 0 a 100%, comentários e anexos. O progresso geral do projeto é a média dos tópicos, sem contar os cancelados.</p>
-        </div>
-        <div class="topicos" role="group" aria-label="Exemplo de projeto de consultoria">
-          <div class="topico">
-            <div class="topico-linha"><span>Levantamento do fluxo atual</span><span class="selo resolvido">Concluído</span></div>
-            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida completa" style="width:100%"></div></div><b>100%</b></div>
-          </div>
-          <div class="topico">
-            <div class="topico-linha"><span>Configuração do módulo fiscal</span><span class="selo andamento">Em andamento</span></div>
-            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:60%"></div></div><b>60%</b></div>
-          </div>
-          <div class="topico">
-            <div class="topico-linha"><span>Treinamento da equipe</span><span class="selo pendente">Pendente</span></div>
-            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:0%"></div></div><b>0%</b></div>
-          </div>
-          <div class="topicos-geral">
-            <div class="topico-linha"><span>Progresso geral</span></div>
-            <div class="barra"><div class="barra-trilho"><div class="barra-preenchida" style="width:53%"></div></div><b>53%</b></div>
-            <small>1 de 3 tópicos concluídos. Exemplo ilustrativo.</small>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="secao equipe" id="equipe" aria-labelledby="t-equipe">
       <div class="miolo">
         <div>
           <h2 class="titulo" id="t-equipe">Cada pessoa faz só o que o papel permite</h2>
           <p class="lead">Três papéis definem quem consulta, quem atende e quem administra. As regras valem no banco de dados, não só nos botões da tela.</p>
           <ul class="equipe-fatos">
-            <li>A auditoria registra quem alterou clientes, atendimentos, pendências, usuários e tópicos de consultoria.</li>
+            <li>A auditoria registra quem alterou clientes, atendimentos, pendências e usuários.</li>
             <li>Usuário desativado perde o acesso aos dados na hora.</li>
             <li>Usuário novo entra desativado até o owner liberar.</li>
           </ul>

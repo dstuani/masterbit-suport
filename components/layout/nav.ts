@@ -9,7 +9,6 @@ import {
   BarChart3,
   Building2,
   Inbox,
-  Presentation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,7 +27,6 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
       { titulo: "Atendimentos", href: "/atendimentos", icone: ClipboardList },
       { titulo: "Pendências", href: "/pendencias", icone: ListChecks },
       { titulo: "Agenda", href: "/agenda", icone: CalendarDays },
-      { titulo: "Consultoria Citel", href: "/consultoria", icone: Presentation },
     ],
   },
   {

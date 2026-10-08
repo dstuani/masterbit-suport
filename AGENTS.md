@@ -33,7 +33,6 @@ da Masterbit). Ele registra cada atendimento feito para cada cliente e permite, 
 - **consultar o histórico**: "como resolvi isso da última vez?" — por palavra, por
   cliente, ou por casos parecidos já resolvidos;
 - ver **relatórios** de volume e horas gastas;
-- acompanhar **projetos de consultoria** tópico a tópico (hoje, a Consultoria Citel).
 
 Uso atual: um único usuário. O sistema foi desenhado desde o início para equipe
 (papéis, atribuição, auditoria), mas a operação real é de uma pessoa só.
@@ -142,7 +141,6 @@ app/
 │   ├── clientes/           lista, novo, [id] (abas), [id]/editar, [id]/importar
 │   ├── pendencias/         lista, nova
 │   ├── agenda/             lista + minicalendário, novo, [id]
-│   ├── consultoria/        tópicos do projeto, [id] (detalhe do tópico)
 │   ├── consultas/          busca no histórico + buscas salvas + CSV
 │   ├── casos-parecidos/    "já resolvi algo assim?"
 │   ├── relatorios/         métricas do período + CSV
@@ -202,7 +200,6 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | **Clientes** | lista com filtro de status; ficha com abas Visão geral, Filiais, Contatos (editar, excluir, reativar, importar planilha), Sistemas | Editar → `/clientes/[id]/editar` (tem "Excluir cliente", que inativa) |
 | **Pendências** | agrupadas por status; vencidas em vermelho; iniciar, concluir (com resultado), cancelar | nascem de um atendimento ou de um cliente |
 | **Agenda** | Próximos (cedo → tarde), Este mês e Todos (recente → antigo); minicalendário filtra por `?dia=` | detalhe: realizar (pode gravar interação no atendimento), remarcar, cancelar |
-| **Consultoria Citel** | tópicos do projeto com status e barra de progresso; progresso geral (média, sem cancelados) | detalhe do tópico: status, controle de 0–100%, comentários, anexos |
 | **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
 | **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
 | **Relatórios** | período (presets ou datas), KPIs, distribuição por status/prioridade/tipo/canal/cliente/categoria, evolução mensal, CSV | — |
@@ -236,6 +233,8 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               │
               ├─ consultoria_projetos ── consultoria_topicos ─┬─ consultoria_comentarios
               │                                               └─ consultoria_anexos
+              │   (SEM TELA no app desde 07/10/2026: a Consultoria Citel foi retirada;
+              │    as tabelas e os dados continuam no banco, as migrations não se editam)
               ├─ solicitacoes (formulário público da landing; só a função
               │               registrar_solicitacao() cria linhas)
               └─ audit_logs   (preenchida só por trigger)
