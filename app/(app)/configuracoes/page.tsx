@@ -16,6 +16,7 @@ import {
   FormularioPerfil,
   FormularioSenha,
 } from "./formularios-equipe";
+import { InstalarApp } from "./instalar-app";
 import { SeletorDeTema } from "./seletor-de-tema";
 
 export const metadata = { title: "Configurações" };
@@ -264,6 +265,18 @@ export default async function ConfiguracoesPage({
             </CardHeader>
             <CardContent>
               <SeletorDeTema />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Aplicativo no celular</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Instale o Suport na tela inicial para abrir como um aplicativo, sem a barra do navegador.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <InstalarApp />
             </CardContent>
           </Card>
 

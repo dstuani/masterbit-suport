@@ -127,6 +127,7 @@ app/
 ├── layout.tsx              raiz: fontes, script anti-piscar do tema, <Toaster>
 ├── globals.css             tokens de cor (claro/escuro) e mapeamento para o Tailwind
 ├── page.tsx                redireciona para /dashboard
+├── manifest.ts             manifesto do PWA (nome, ícones, atalhos)
 ├── (auth)/login/           tela de login + Server Action entrar()/sair()
 ├── (auth)/recuperar-senha/ pede o link por e-mail (resposta igual exista a conta ou não)
 ├── (auth)/nova-senha/      define a nova senha (exige a sessão aberta pelo link)
@@ -175,7 +176,7 @@ atendimento/             página só do formulário de pedido de atendimento, pa
                          próprio; mesma função registrar_solicitacao e mesmo objeto CONTATO.
                          Preview: configuração "atendimento" (porta 4200)
                          Preview: preview_start com a configuração "landing" (porta 4100)
-public/masterbit-logo.png
+public/                 masterbit-logo.png, sw.js (service worker), offline.html e icons/ do PWA
 ```
 
 **Onde fica cada coisa, na prática:** a página (`page.tsx`, Server Component) chama
@@ -452,3 +453,12 @@ português, curtos.
     estranhos: a tela exibe como texto puro (`whitespace-pre-wrap`), nunca como HTML;
     (f) a assinatura da função não aparece nos tipos gerados — mudar o SQL não quebra o
     TypeScript, quebra a landing em execução.
+19. **PWA (07/10/2026).** O app é instalável (`app/manifest.ts`, ícones em `public/icons/`). O service
+    worker `public/sw.js` só mostra `public/offline.html` quando a navegação falha: **não guarda
+    páginas nem dados**, porque são de clientes e exigem login — nunca acrescente cache de
+    resposta sem decidir antes o que pode ficar no aparelho. O `proxy.ts` exclui
+    `manifest.webmanifest`, `sw.js` e `offline.html` no `matcher`: o navegador os busca sem sessão,
+    e um redirecionamento ao login invalidaria o PWA. O worker só se registra em produção
+    (`RegistrarServiceWorker`). Ao mudar o `sw.js`, aumente `VERSAO` nele. Notificações push
+    ainda não existem. Os ícones foram gerados de uma imagem pequena (119 x 93 px): se houver
+    a logo em 512 px ou mais, refazer.

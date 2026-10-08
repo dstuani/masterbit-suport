@@ -61,5 +61,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Ignora assets estáticos e imagens — o proxy roda em toda navegação real.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // O manifesto, o service worker e a tela offline também ficam de fora: o navegador
+  // os busca sem sessão, e um redirecionamento ao login invalidaria o PWA.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
