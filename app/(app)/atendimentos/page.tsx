@@ -141,13 +141,13 @@ export default async function AtendimentosPage({
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-surface-muted text-left">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Nº</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Nº</th>
                   <th className="px-4 py-2.5 font-medium">Assunto</th>
-                  <th className="px-4 py-2.5 font-medium">Cliente</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 font-medium">Prioridade</th>
-                  <th className="px-4 py-2.5 font-medium">Tempo</th>
-                  <th className="px-4 py-2.5 font-medium">Atualizado</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Cliente</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Status</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Prioridade</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Tempo</th>
+                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Atualizado</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +157,7 @@ export default async function AtendimentosPage({
 
                   return (
                     <tr key={item.id} className="border-b border-border last:border-0">
-                      <td className="px-4 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                      <td className="hidden px-4 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">
                         {item.numero}
                       </td>
                       <td className="px-4 py-2.5">
@@ -177,20 +177,30 @@ export default async function AtendimentosPage({
                             </span>
                           ) : null}
                         </div>
+                        {/* Celular: as colunas escondidas viram uma linha de resumo sob o assunto. */}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground md:hidden">
+                          <span className="tabular-nums">{item.numero}</span>
+                          {item.cliente_nome ? <span>· {item.cliente_nome}</span> : null}
+                          <span>· {formatarRelativo(item.updated_at)}</span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 md:hidden">
+                          {status ? <Badge className={status.cor}>{status.rotulo}</Badge> : null}
+                          {prioridade ? <Badge className={prioridade.cor}>{prioridade.rotulo}</Badge> : null}
+                        </div>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{item.cliente_nome}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{item.cliente_nome}</td>
+                      <td className="hidden px-4 py-2.5 md:table-cell">
                         {status ? <Badge className={status.cor}>{status.rotulo}</Badge> : null}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="hidden px-4 py-2.5 md:table-cell">
                         {prioridade ? (
                           <Badge className={prioridade.cor}>{prioridade.rotulo}</Badge>
                         ) : null}
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                      <td className="hidden px-4 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">
                         {formatarDuracao(item.tempo_gasto_minutos)}
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">
+                      <td className="hidden px-4 py-2.5 whitespace-nowrap text-muted-foreground md:table-cell">
                         {formatarRelativo(item.updated_at)}
                       </td>
                     </tr>

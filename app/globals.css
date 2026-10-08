@@ -65,6 +65,56 @@
   color-scheme: dark;
 }
 
+/*
+ * Cores dos gráficos (Relatórios). Validadas com o validador de paleta do método de
+ * dataviz: laranja da marca x azul, nos dois temas (diferença de cor >= 25 mesmo para
+ * daltônicos). No escuro o laranja pleno da marca (#f47b36) fica claro demais para
+ * marcas finas, então o gráfico usa o passo #e0652c.
+ */
+:root {
+  --viz-1: #c4561b;
+  --viz-2: #2a78d6;
+  --viz-grade: #ede8e2;
+  --viz-eixo: #d6cfc8;
+  --sit-resolvido: #2a78d6;
+  --sit-em_andamento: #1baf7a;
+  --sit-aberto: #eda100;
+  --sit-aguardando_cliente: #4a3aa7;
+  --sit-aguardando_terceiro: #e87ba4;
+  --sit-agendado: #008300;
+  --sit-cancelado: #a8a29e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --viz-1: #e0652c;
+    --viz-2: #3987e5;
+    --viz-grade: #26211e;
+    --viz-eixo: #38322e;
+    --sit-resolvido: #3987e5;
+    --sit-em_andamento: #199e70;
+    --sit-aberto: #c98500;
+    --sit-aguardando_cliente: #9085e9;
+    --sit-aguardando_terceiro: #d55181;
+    --sit-agendado: #008300;
+    --sit-cancelado: #a8a29e;
+  }
+}
+
+.dark {
+  --viz-1: #e0652c;
+  --viz-2: #3987e5;
+  --viz-grade: #26211e;
+  --viz-eixo: #38322e;
+  --sit-resolvido: #3987e5;
+  --sit-em_andamento: #199e70;
+  --sit-aberto: #c98500;
+  --sit-aguardando_cliente: #9085e9;
+  --sit-aguardando_terceiro: #d55181;
+  --sit-agendado: #008300;
+  --sit-cancelado: #a8a29e;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

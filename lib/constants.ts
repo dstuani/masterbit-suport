@@ -33,6 +33,17 @@ export const STATUS_ATENDIMENTO = {
   },
 } as const;
 
+/** Ordem fixa das situações nos gráficos; a cor segue a situação, nunca a posição (vem de --sit-* em globals.css). */
+export const ORDEM_SITUACAO = [
+  "resolvido",
+  "em_andamento",
+  "aberto",
+  "aguardando_cliente",
+  "aguardando_terceiro",
+  "agendado",
+  "cancelado",
+] as const;
+
 export const PRIORIDADES = {
   baixa: {
     rotulo: "Baixa",

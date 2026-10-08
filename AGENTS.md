@@ -203,7 +203,7 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | **Agenda** | Próximos (cedo → tarde), Este mês e Todos (recente → antigo); minicalendário filtra por `?dia=` | detalhe: realizar (pode gravar interação no atendimento), remarcar, cancelar |
 | **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
 | **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
-| **Relatórios** | período (presets ou datas), KPIs, distribuição por status/prioridade/tipo/canal/cliente/categoria, evolução mensal, CSV | — |
+| **Relatórios** | painel com filtros na URL (período, cliente, categoria, sistema, responsável, situação, canal, tipo, prioridade e a métrica atendimentos/tempo): indicadores com variação contra o período anterior, faixa de situação (barra de 100% por situação, situação dentro de cada tipo/categoria/canal e resolvidos por categoria), evolução (dia/semana/mês), barras por dimensão (clicar numa barra aplica o filtro), mapa de calor por dia e faixa do horário, lista do recorte e CSV | `/atendimentos/[id]` |
 | **Configurações** | Sistemas, Categorias, Conta (tema, perfil, senha); Equipe e Auditoria só para `owner` | Equipe: papel, ativar/desativar, novo usuário com senha temporária |
 
 **Fluxo central:** cliente → atendimento → interações na timeline (texto, tempo,
@@ -404,10 +404,10 @@ português, curtos.
    ela ignora o RLS e vaza dados entre organizações). Coluna nova em `atendimentos` só
    aparece na lista, no dashboard, em consultas e em relatórios se for acrescentada na
    view.
-7. **Limite de 1.000 linhas do Supabase.** Relatórios busca todos os atendimentos do
-   período sem paginação e agrega em JavaScript; a busca por conteúdo levanta IDs e os
-   passa em `id.in.(…)`. Com volume grande, os totais saem truncados sem aviso, e a URL
-   da busca pode estourar.
+7. **Limite de 1.000 linhas do Supabase.** Relatórios agora lê em páginas de 1.000 (teto de
+   20.000 linhas, com aviso na tela quando passa) e agrega em JavaScript; a busca por
+   conteúdo em Atendimentos ainda levanta IDs e os passa em `id.in.(…)`, então com volume
+   grande a URL dela pode estourar.
 8. **Suposição de organização única:** `tratar_novo_usuario` e a semente da Consultoria
    Citel pegam "a primeira organização". Multi-empresa exigiria revisar os dois.
 9. **Função `buscar_atendimentos_parecidos`:** o gerador de tipos não descreve funções,
@@ -415,9 +415,10 @@ português, curtos.
    não quebra o TypeScript — quebra em execução.
 10. **Automação fora do banco:** a primeira interação muda o atendimento de `aberto`
     para `em_andamento` em `registrarInteracao` (aplicação), não por trigger.
-11. **Fuso horário:** "hoje", "este mês" e os períodos dos relatórios são calculados com
-    a hora do servidor; strings como `2026-09-30T23:59:59` vão sem fuso. Num servidor em
-    UTC, os limites ficam 3 horas deslocados em relação a Brasília.
+11. **Fuso horário:** "hoje" e "este mês" ainda usam a hora do servidor fora dos Relatórios. Nos
+    Relatórios os limites do período usam `-03:00` fixo e o agrupamento por dia, semana e
+    faixa do dia usa `America/Sao_Paulo` (o Brasil não tem horário de verão desde 2019; se
+    voltar, ajustar `DESLOCAMENTO` em `lib/services/relatorios.ts`).
 
 ### Código
 
@@ -462,3 +463,12 @@ português, curtos.
     (`RegistrarServiceWorker`). Ao mudar o `sw.js`, aumente `VERSAO` nele. Notificações push
     ainda não existem. Os ícones foram gerados de uma imagem pequena (119 x 93 px): se houver
     a logo em 512 px ou mais, refazer.
+20. **Cores dos gráficos (Relatórios).** Os tokens `--viz-1` (laranja) e `--viz-2` (azul) em
+    `app/globals.css` foram validados com o validador de paleta da skill de dataviz nos dois
+    temas. No escuro o laranja é `#e0652c`, não o `#f47b36` da marca, que sai da faixa de
+    luminosidade. Laranja = atendimentos abertos, azul = resolvidos: não reutilize essas
+    cores com outro significado no mesmo painel. As sete situações têm cores fixas (`--sit-*`, na
+    ordem de `ORDEM_SITUACAO` em `lib/constants.ts`), validadas nos dois temas: no claro três tons
+    ficam abaixo de 3:1, por isso a legenda sempre mostra os números e há tabela equivalente.
+    Resolvido é azul em todo o painel; a cor segue a situação, nunca a posição. Todo gráfico tem gêmea em tabela (`<details>`
+    ou a própria `<table>` do mapa de calor).

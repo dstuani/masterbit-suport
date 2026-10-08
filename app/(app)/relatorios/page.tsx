@@ -1,18 +1,22 @@
 import { format, startOfMonth } from "date-fns";
-import { BarChart3, Clock, CheckCircle2, XCircle, InboxIcon } from "lucide-react";
+import { BarChart3, TriangleAlert } from "lucide-react";
 
-import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabaseConfigurado } from "@/lib/env";
-import { obterRelatorio, type ItemGrafico } from "@/lib/services/relatorios";
-import { formatarDuracao } from "@/lib/utils";
+import { obterOpcoesDeFiltro, obterRelatorio, type FiltrosRelatorio as Filtros } from "@/lib/services/relatorios";
 
-import { SeletorDePeriodo } from "./periodo";
 import { BotaoExportarRelatorio } from "./exportar";
+import { FiltrosRelatorio } from "./filtros";
+import { GraficoLinhas } from "./grafico-linhas";
+import { Indicadores, ListaDoRecorte, MapaDeCalor, RankingBarras, type Metrica } from "./graficos";
+import { BlocoSituacao, BlocoSituacaoPorDimensao } from "./situacao";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Relatórios" };
+
+const DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function RelatoriosPage({
   searchParams,
@@ -31,262 +35,145 @@ export default async function RelatoriosPage({
   }
 
   const hoje = new Date();
-  const de = params.de ?? format(startOfMonth(hoje), "yyyy-MM-dd");
-  const ate = params.ate ?? format(hoje, "yyyy-MM-dd");
+  // A URL é entrada de qualquer pessoa: data fora do formato volta para o padrão.
+  let de = params.de && DATA.test(params.de) ? params.de : format(startOfMonth(hoje), "yyyy-MM-dd");
+  let ate = params.ate && DATA.test(params.ate) ? params.ate : format(hoje, "yyyy-MM-dd");
+  if (de > ate) [de, ate] = [ate, de];
 
-  const dados = await obterRelatorio(de, ate);
+  const metrica: Metrica = params.metrica === "tempo" ? "tempo" : "atendimentos";
 
-  const taxaResolucao =
-    dados.total > 0 ? Math.round((dados.resolvidos / dados.total) * 100) : 0;
+  const filtros: Filtros = {
+    de,
+    ate,
+    cliente: params.cliente,
+    categoria: params.categoria,
+    sistema: params.sistema,
+    responsavel: params.responsavel,
+    canal: params.canal,
+    tipo: params.tipo,
+    prioridade: params.prioridade,
+    status: params.status,
+  };
+
+  const [relatorio, opcoes] = await Promise.all([obterRelatorio(filtros), obterOpcoesDeFiltro()]);
+
+  // Parâmetros atuais, repassados às barras para o clique aplicar um filtro sem perder os outros.
+  const paramsAtuais: Record<string, string> = { de, ate };
+  for (const [chave, v] of Object.entries(params)) {
+    if (v && !["de", "ate"].includes(chave)) paramsAtuais[chave] = v;
+  }
+
+  const { ranking, serie, situacao } = relatorio;
 
   return (
     <>
       <PageHeader
         titulo="Relatórios"
-        descricao="Volume e tempo de suporte no período selecionado."
-        acoes={<BotaoExportarRelatorio itens={dados.itens} periodo={{ de, ate }} />}
+        descricao="Volume, prazos e tempo de suporte. Clique numa barra para filtrar por ela."
+        acoes={<BotaoExportarRelatorio itens={relatorio.itens} periodo={{ de, ate }} />}
       />
 
-      <SeletorDePeriodo de={de} ate={ate} />
+      <FiltrosRelatorio de={de} ate={ate} metrica={metrica} opcoes={opcoes} />
 
-      {/* KPIs */}
-      <div className="mb-6 grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
-        <KPI
-          rotulo="Total no período"
-          valor={String(dados.total)}
-          icone={BarChart3}
-        />
-        <KPI
-          rotulo="Em aberto"
-          valor={String(dados.emAberto)}
-          icone={InboxIcon}
-        />
-        <KPI
-          rotulo="Resolvidos"
-          valor={`${dados.resolvidos} (${taxaResolucao}%)`}
-          icone={CheckCircle2}
-          cor="text-emerald-600 dark:text-emerald-400"
-        />
-        <KPI
-          rotulo="Cancelados"
-          valor={String(dados.cancelados)}
-          icone={XCircle}
-          cor="text-neutral-500"
-        />
-        <KPI
-          rotulo="Tempo total"
-          valor={formatarDuracao(dados.tempoTotalMinutos)}
-          detalhe={dados.resolvidos > 0 ? `Média: ${formatarDuracao(dados.tempoMedioMinutos)}` : undefined}
-          icone={Clock}
-        />
-      </div>
+      <div id="relatorio-conteudo" className="transition-opacity data-[carregando=true]:opacity-60">
+        {relatorio.truncado ? (
+          <p role="alert" className="mb-4 flex items-center gap-2 rounded-app border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            <TriangleAlert className="size-4 shrink-0" />
+            Há atendimentos demais neste recorte e os números ficaram parciais. Estreite o período ou use um filtro.
+          </p>
+        ) : null}
 
-      {dados.total === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 p-12 text-center">
-            <BarChart3 className="size-8 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Nenhum atendimento no período</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Selecione outro período ou aguarde novos registros.
-              </p>
+        <Indicadores relatorio={relatorio} />
+
+        {relatorio.kpis.total === 0 && serie.pontos.every((p) => p.resolvidos === 0) ? (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-3 p-12 text-center">
+              <BarChart3 className="size-8 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Nenhum atendimento neste recorte</p>
+                <p className="mt-1 text-sm text-muted-foreground">Mude o período ou tire algum filtro.</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
+              <BlocoSituacao totais={situacao.totais} params={paramsAtuais} />
+              <BlocoSituacaoPorDimensao
+                grupos={{ tipo: situacao.porTipo, categoria: situacao.porCategoria, canal: situacao.porCanal }}
+                metrica={metrica}
+                params={paramsAtuais}
+              />
+              <RankingBarras
+                titulo="Resolvidos por categoria"
+                descricao={`${relatorio.kpis.resolvidos} ${relatorio.kpis.resolvidos === 1 ? "resolvido" : "resolvidos"} no período`}
+                itens={relatorio.resolvidosPorCategoria}
+                metrica={metrica}
+                params={paramsAtuais}
+                cor="var(--viz-2)"
+                limite={6}
+              />
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Gráficos de distribuição */}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-4">
-            <GraficoBarras titulo="Por Status" itens={dados.porStatus} />
-            <GraficoBarras titulo="Por Prioridade" itens={dados.porPrioridade} />
-            <GraficoBarras titulo="Por Tipo" itens={dados.porTipo} />
-            <GraficoBarras titulo="Por Canal" itens={dados.porCanal} />
-          </div>
 
-          {/* Clientes e categorias */}
-          <div className="grid gap-4 md:grid-cols-2 mb-4">
-            {dados.porCliente.length > 0 ? (
-              <GraficoBarras
-                titulo="Top Clientes"
-                itens={dados.porCliente.map((c) => ({
-                  chave: c.nome,
-                  rotulo: c.nome,
-                  total: c.total,
-                  minutos: c.minutos,
-                }))}
-                mostrarMinutos
-              />
-            ) : null}
-
-            {dados.porCategoria.length > 0 ? (
-              <GraficoBarras
-                titulo="Por Categoria"
-                itens={dados.porCategoria.map((c) => ({
-                  chave: c.nome,
-                  rotulo: c.nome,
-                  total: c.total,
-                  minutos: c.minutos,
-                }))}
-              />
-            ) : null}
-          </div>
-
-          {/* Evolução mensal */}
-          {dados.evolucaoMensal.length > 1 ? (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Evolução mensal</CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Evolução {serie.granularidade === "dia" ? "por dia" : serie.granularidade === "semana" ? "por semana" : "por mês"}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <TabelaEvolucao linhas={dados.evolucaoMensal} />
+                <GraficoLinhas pontos={serie.pontos} granularidade={serie.granularidade} />
+                {/* Gêmea em tabela: o mesmo dado sem depender de ver o gráfico. */}
+                <details className="mt-3 text-sm">
+                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Ver como tabela</summary>
+                  <div className="mt-2 max-h-72 overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-surface text-left">
+                        <tr className="border-b border-border">
+                          <th className="py-1.5 pr-4 font-medium">{serie.granularidade === "semana" ? "Semana de" : "Período"}</th>
+                          <th className="py-1.5 pr-4 text-right font-medium">Abertos</th>
+                          <th className="py-1.5 text-right font-medium">Resolvidos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {serie.pontos.map((p) => (
+                          <tr key={p.chave} className="border-b border-border last:border-0">
+                            <td className="py-1.5 pr-4 capitalize">{p.rotulo}</td>
+                            <td className="py-1.5 pr-4 text-right tabular-nums">{p.criados}</td>
+                            <td className="py-1.5 text-right tabular-nums">{p.resolvidos}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </CardContent>
             </Card>
-          ) : null}
-        </>
-      )}
-    </>
-  );
-}
 
-// ─── Componentes internos (servidor) ────────────────────────────────────────
-
-function KPI({
-  rotulo,
-  valor,
-  detalhe,
-  icone: Icone,
-  cor,
-}: {
-  rotulo: string;
-  valor: string;
-  detalhe?: string;
-  icone: React.ElementType;
-  cor?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-start justify-between p-4">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{rotulo}</p>
-          <p className={`mt-1 text-xl font-semibold tabular-nums truncate ${cor ?? ""}`}>
-            {valor}
-          </p>
-          {detalhe ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{detalhe}</p>
-          ) : null}
-        </div>
-        <Icone className={`size-4 shrink-0 mt-0.5 ${cor ?? "text-muted-foreground"}`} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function GraficoBarras({
-  titulo,
-  itens,
-  mostrarMinutos,
-}: {
-  titulo: string;
-  itens: ItemGrafico[];
-  mostrarMinutos?: boolean;
-}) {
-  if (itens.length === 0) return null;
-  const max = Math.max(...itens.map((i) => i.total), 1);
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{titulo}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2.5">
-        {itens.map((item) => (
-          <div key={item.chave}>
-            <div className="mb-1 flex items-baseline justify-between gap-2">
-              <span className="truncate text-xs text-muted-foreground">{item.rotulo}</span>
-              <span className="shrink-0 tabular-nums text-xs font-medium">
-                {item.total}
-                {mostrarMinutos && item.minutos > 0 ? (
-                  <span className="ml-1 font-normal text-muted-foreground">
-                    · {formatarDuracao(item.minutos)}
-                  </span>
-                ) : null}
-              </span>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <RankingBarras titulo="Por cliente" itens={ranking.cliente} metrica={metrica} params={paramsAtuais} limite={10} />
+              <RankingBarras titulo="Por categoria" itens={ranking.categoria} metrica={metrica} params={paramsAtuais} />
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-1.5 rounded-full bg-primary transition-all"
-                style={{ width: `${Math.round((item.total / max) * 100)}%` }}
-              />
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <RankingBarras titulo="Por prioridade" itens={ranking.prioridade} metrica={metrica} params={paramsAtuais} />
+              <RankingBarras titulo="Por canal" itens={ranking.canal} metrica={metrica} params={paramsAtuais} />
+              <RankingBarras titulo="Por sistema" itens={ranking.sistema} metrica={metrica} params={paramsAtuais} limite={6} />
             </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className={ranking.responsavel.length > 1 ? "" : "lg:col-span-2"}>
+                <MapaDeCalor heatmap={relatorio.heatmap} />
+              </div>
+              {ranking.responsavel.length > 1 ? (
+                <RankingBarras titulo="Por responsável" itens={ranking.responsavel} metrica={metrica} params={paramsAtuais} />
+              ) : null}
+            </div>
+
+            <ListaDoRecorte relatorio={relatorio} />
           </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function TabelaEvolucao({
-  linhas,
-}: {
-  linhas: { mes: string; rotulo: string; criados: number; resolvidos: number }[];
-}) {
-  const maxCriados = Math.max(...linhas.map((l) => l.criados), 1);
-  const maxResolvidos = Math.max(...linhas.map((l) => l.resolvidos), 1);
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left">
-            <th className="pb-2 font-medium text-muted-foreground w-24">Mês</th>
-            <th className="pb-2 font-medium text-muted-foreground">Criados</th>
-            <th className="pb-2 font-medium text-muted-foreground">Resolvidos</th>
-            <th className="pb-2 font-medium text-muted-foreground w-20 text-right">Taxa</th>
-          </tr>
-        </thead>
-        <tbody>
-          {linhas.map((linha) => {
-            const taxa =
-              linha.criados > 0
-                ? Math.round((linha.resolvidos / linha.criados) * 100)
-                : 0;
-            return (
-              <tr key={linha.mes} className="border-b border-border last:border-0">
-                <td className="py-2.5 pr-4 font-medium capitalize">{linha.rotulo}</td>
-                <td className="py-2.5 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 shrink-0 tabular-nums text-right">{linha.criados}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-1.5 rounded-full bg-sky-500"
-                        style={{
-                          width: `${Math.round((linha.criados / maxCriados) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td className="py-2.5 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 shrink-0 tabular-nums text-right">{linha.resolvidos}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-1.5 rounded-full bg-emerald-500"
-                        style={{
-                          width: `${Math.round((linha.resolvidos / maxResolvidos) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td className="py-2.5 text-right tabular-nums text-muted-foreground">
-                  {taxa}%
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+        )}
+      </div>
+    </>
   );
 }
