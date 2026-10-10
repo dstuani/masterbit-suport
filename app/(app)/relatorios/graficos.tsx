@@ -99,10 +99,10 @@ export function Indicadores({ relatorio }: { relatorio: Relatorio }) {
 // ─── Barras de ranking ───────────────────────────────────────────────────────
 
 /** Mantém todos os filtros da URL e acrescenta (ou troca) o do item clicado. */
-function hrefDoFiltro(params: Record<string, string>, filtros: { nome: string; valor: string }[]) {
+function hrefDoFiltro(base: string, params: Record<string, string>, filtros: { nome: string; valor: string }[]) {
   const busca = new URLSearchParams(params);
   for (const f of filtros) busca.set(f.nome, f.valor);
-  return `/relatorios?${busca}`;
+  return `${base}?${busca}`;
 }
 
 export function RankingBarras({
@@ -111,6 +111,8 @@ export function RankingBarras({
   metrica,
   params,
   limite = 8,
+  base = "/relatorios",
+  ordenar = true,
   cor = "var(--viz-1)",
   descricao,
 }: {
@@ -122,12 +124,16 @@ export function RankingBarras({
   limite?: number;
   /** Cor da barra: laranja (abertos) por padrão; azul quando o dado são os resolvidos. */
   cor?: string;
+  /** Página que recebe o filtro do clique. */
+  base?: string;
+  /** Falso para categorias que já têm ordem própria (faixas, por exemplo). */
+  ordenar?: boolean;
   descricao?: string;
 }) {
   if (itens.length === 0) return null;
 
   const valor = (i: ItemRanking) => (metrica === "tempo" ? i.minutos : i.total);
-  const ordenados = [...itens].sort((a, b) => valor(b) - valor(a));
+  const ordenados = ordenar ? [...itens].sort((a, b) => valor(b) - valor(a)) : itens;
   const visiveis = ordenados.slice(0, limite);
   const escondidos = ordenados.length - visiveis.length;
   const maximo = Math.max(...visiveis.map(valor), 1);
@@ -164,12 +170,13 @@ export function RankingBarras({
           );
 
           const classes = "block rounded-app px-2 py-1.5 -mx-2";
-          return item.filtro ? (
+          const destino = item.href ?? (item.filtro ? hrefDoFiltro(base, params, item.filtro) : null);
+          return destino ? (
             <Link
               key={item.chave}
-              href={hrefDoFiltro(params, item.filtro)}
+              href={destino}
               className={cn(classes, "transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
-              title={`Filtrar por ${item.rotulo}`}
+              title={item.href ? `Abrir ${item.rotulo}` : `Filtrar por ${item.rotulo}`}
             >
               {conteudo}
             </Link>

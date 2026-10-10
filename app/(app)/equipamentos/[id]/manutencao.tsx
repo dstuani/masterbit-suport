@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { registrarManutencaoAction } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Campo } from "@/components/ui/campo";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { TIPOS_MANUTENCAO } from "@/lib/constants";
 import { estadoInicial } from "@/lib/forms";
 
 function Mensagem({ texto }: { texto?: string | null }) {
@@ -35,6 +36,7 @@ export function FormularioManutencao({
   const [estado, acao, pendente] = useActionState(registrarManutencaoAction, estadoInicial);
   const formulario = useRef<HTMLFormElement>(null);
   const erroDe = (campo: string) => estado.campos?.[campo];
+  const [tipo, setTipo] = useState("corretiva");
 
   // Depois de gravar, o formulário volta limpo para a próxima manutenção.
   useEffect(() => {
@@ -42,8 +44,33 @@ export function FormularioManutencao({
   }, [estado]);
 
   return (
-    <form ref={formulario} action={acao} className="grid gap-3 sm:grid-cols-2">
+    <form ref={formulario} action={acao} onReset={() => setTipo("corretiva")} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="equipamento_id" value={equipamentoId} />
+
+      <Campo id="tipo" rotulo="Tipo" obrigatorio className="sm:col-span-2">
+        <Select id="tipo" name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          {Object.entries(TIPOS_MANUTENCAO).map(([valor, rotulo]) => (
+            <option key={valor} value={valor}>
+              {rotulo}
+            </option>
+          ))}
+        </Select>
+        <Mensagem texto={erroDe("tipo")} />
+      </Campo>
+
+      {/* Só a troca de peça pede as peças; nos outros tipos os campos nem são enviados. */}
+      {tipo === "troca_peca" ? (
+        <>
+          <Campo id="peca_retirada" rotulo="Peça retirada" dica="Ex.: SSD Kingston 240 GB">
+            <Input id="peca_retirada" name="peca_retirada" maxLength={200} />
+            <Mensagem texto={erroDe("peca_retirada")} />
+          </Campo>
+          <Campo id="peca_instalada" rotulo="Peça instalada" dica="Ex.: SSD Kingston 480 GB">
+            <Input id="peca_instalada" name="peca_instalada" maxLength={200} />
+            <Mensagem texto={erroDe("peca_instalada")} />
+          </Campo>
+        </>
+      ) : null}
 
       <Campo id="descricao" rotulo="O que foi feito" obrigatorio className="sm:col-span-2">
         <Textarea
@@ -66,7 +93,12 @@ export function FormularioManutencao({
         <Mensagem texto={erroDe("tempo_minutos")} />
       </Campo>
 
-      <Campo id="atendimento_id" rotulo="Atendimento" dica="Opcional: o atendimento em que esta manutenção foi feita." className="sm:col-span-2">
+      <Campo id="custo" rotulo="Custo (R$)" dica="Opcional: peças ou serviço de terceiros.">
+        <Input id="custo" name="custo" inputMode="decimal" placeholder="0,00" />
+        <Mensagem texto={erroDe("custo")} />
+      </Campo>
+
+      <Campo id="atendimento_id" rotulo="Atendimento" dica="Opcional: o atendimento em que esta manutenção foi feita.">
         <Select id="atendimento_id" name="atendimento_id" defaultValue="">
           <option value="">Nenhum</option>
           {atendimentos.map((a) => (

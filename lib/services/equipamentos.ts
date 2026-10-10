@@ -19,6 +19,8 @@ export type Manutencao = Tabelas<"equipamento_manutencoes"> & {
   profiles: { nome: string } | null;
 };
 
+export type Alteracao = Tabelas<"equipamento_alteracoes">;
+
 export type ChaveDeColeta = Pick<
   Tabelas<"coleta_chaves">,
   "id" | "prefixo" | "descricao" | "criada_em" | "revogada_em" | "ultimo_uso_em" | "usos"
@@ -92,6 +94,19 @@ export async function listarManutencoes(equipamentoId: string): Promise<Manutenc
   return (data ?? []) as Manutencao[];
 }
 
+/** Mudanças de hardware que a coleta percebeu, das mais recentes para as mais antigas. */
+export async function listarAlteracoes(equipamentoId: string): Promise<Alteracao[]> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("equipamento_alteracoes")
+    .select("*")
+    .eq("equipamento_id", equipamentoId)
+    .order("detectada_em", { ascending: false })
+    .limit(50);
+  if (error) throw new Error(traduzirErro(error.message));
+  return data ?? [];
+}
+
 /** Atendimentos recentes do cliente, para ligar uma manutenção ao atendimento em que ela aconteceu. */
 export async function atendimentosParaVincular(clienteId: string) {
   const supabase = await criarClienteServidor();
@@ -148,7 +163,14 @@ export async function registrarManutencao(dados: DadosManutencao): Promise<void>
   const supabase = await criarClienteServidor();
   const { error } = await supabase
     .from("equipamento_manutencoes")
-    .insert({ ...dados, org_id: perfil.org_id, autor_id: perfil.id });
+    .insert({
+      ...dados,
+      // Peças só fazem sentido na troca de peça, mesmo que cheguem por outra via.
+      peca_retirada: dados.tipo === "troca_peca" ? dados.peca_retirada : null,
+      peca_instalada: dados.tipo === "troca_peca" ? dados.peca_instalada : null,
+      org_id: perfil.org_id,
+      autor_id: perfil.id,
+    });
   if (error) throw new Error(traduzirErro(error.message));
 }
 

@@ -27,6 +27,10 @@ const TRADUCOES: [string, string][] = [
   ["equipamentos_identificador_por_cliente", "Esta máquina já está cadastrada neste cliente."],
   ["manutencoes_descricao_valida", "Descreva a manutenção (até 4.000 caracteres)."],
   ["manutencoes_tempo_valido", "O tempo deve ficar entre 0 e 10.080 minutos (7 dias)."],
+  ["manutencoes_troca_tem_peca", "Na troca de peça, informe a peça retirada ou a instalada."],
+  ["manutencoes_tipo_valido", "Tipo de manutenção inválido."],
+  ["manutencoes_custo_valido", "Custo inválido."],
+  ["manutencoes_pecas_tamanho", "O nome da peça deve ter até 200 caracteres."],
   ["violates foreign key constraint", "Existe registro dependente que impede esta operação."],
   ["row-level security", "Sem permissão para esta operação."],
 ];

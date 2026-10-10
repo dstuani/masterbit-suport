@@ -20,7 +20,7 @@ type LinhaLista = Database["public"]["Views"]["atendimentos_lista"]["Row"];
 // O Brasil não tem horário de verão desde 2019: -03:00 fixo é seguro. Sem o
 // deslocamento, o servidor (em UTC) cortaria o dia 3 horas fora do de Brasília.
 const FUSO = "America/Sao_Paulo";
-const DESLOCAMENTO = "-03:00";
+export const DESLOCAMENTO = "-03:00";
 
 /** Mesmo teto do limite de linhas do Supabase por requisição. */
 const TAMANHO_DA_PAGINA = 1000;
@@ -75,7 +75,7 @@ function aplicar<T>(query: T, pares: [string, string][]): T {
 type Pagina<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
 
 /** Busca todas as páginas: o Supabase corta cada resposta em 1.000 linhas. */
-async function buscarTudo<T>(pagina: (inicio: number, fim: number) => Pagina<T>) {
+export async function buscarTudo<T>(pagina: (inicio: number, fim: number) => Pagina<T>) {
   const linhas: T[] = [];
   let truncado = false;
   for (let inicio = 0; ; inicio += TAMANHO_DA_PAGINA) {
@@ -124,6 +124,8 @@ export type ItemRanking = {
   minutos: number;
   /** Parâmetros de URL que filtram por este item (clicar na barra aplica o filtro). */
   filtro?: { nome: string; valor: string }[];
+  /** Destino direto do clique (ex.: a ficha do item), no lugar do filtro. */
+  href?: string;
 };
 
 export type ContagemSituacao = { total: number; minutos: number };

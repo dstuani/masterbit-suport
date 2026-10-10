@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Monitor, Plus, Search } from "lucide-react";
+import { BarChart3, Monitor, Plus, Search } from "lucide-react";
 
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
@@ -64,14 +64,22 @@ export default async function EquipamentosPage({
         titulo="Equipamentos"
         descricao="O parque de máquinas dos clientes, com o hardware coletado e o histórico de manutenções."
         acoes={
-          podeEditar ? (
-            <Button asChild size="sm">
-              <Link href="/equipamentos/novo">
-                <Plus />
-                Novo equipamento
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/equipamentos/relatorio">
+                <BarChart3 />
+                Relatório
               </Link>
             </Button>
-          ) : null
+            {podeEditar ? (
+              <Button asChild size="sm">
+                <Link href="/equipamentos/novo">
+                  <Plus />
+                  Novo equipamento
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

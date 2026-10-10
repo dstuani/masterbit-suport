@@ -8,15 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { podeEscreverAgora } from "@/lib/auth";
-import { DIAS_SEM_COLETA, TIPOS_EQUIPAMENTO } from "@/lib/constants";
+import { DIAS_SEM_COLETA, TIPOS_EQUIPAMENTO, TIPOS_MANUTENCAO } from "@/lib/constants";
 import { supabaseConfigurado } from "@/lib/env";
 import {
   atendimentosParaVincular,
   limiteSemColeta,
+  listarAlteracoes,
   listarManutencoes,
   obterEquipamento,
 } from "@/lib/services/equipamentos";
-import { formatarDataHora, formatarDuracao, formatarMemoria, formatarRelativo } from "@/lib/utils";
+import { descreverAlteracao } from "@/lib/services/relatorio-equipamentos";
+import { formatarData, formatarDataHora, formatarDuracao, formatarMemoria, formatarMoeda, formatarRelativo } from "@/lib/utils";
 import { mudarSituacaoEquipamentoAction } from "../actions";
 import { FormularioManutencao } from "./manutencao";
 
@@ -45,8 +47,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
   const equipamento = await obterEquipamento(id);
   if (!equipamento) notFound();
 
-  const [manutencoes, atendimentos, podeEditar] = await Promise.all([
+  const [manutencoes, alteracoes, atendimentos, podeEditar] = await Promise.all([
     listarManutencoes(id),
+    listarAlteracoes(id),
     atendimentosParaVincular(equipamento.cliente_id),
     podeEscreverAgora(),
   ]);
@@ -132,11 +135,23 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
               <ol className="flex flex-col">
                 {manutencoes.map((m) => (
                   <li key={m.id} className="border-l-2 border-border pb-5 pl-4 last:pb-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                      <Badge>{TIPOS_MANUTENCAO[m.tipo as keyof typeof TIPOS_MANUTENCAO] ?? m.tipo}</Badge>
+                      {m.custo !== null ? (
+                        <span className="text-xs font-medium tabular-nums">{formatarMoeda(Number(m.custo))}</span>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {formatarDataHora(m.realizada_em)}
                       {m.tempo_minutos ? ` · ${formatarDuracao(m.tempo_minutos)}` : ""}
                       {m.profiles?.nome ? ` · ${m.profiles.nome}` : ""}
                     </p>
+                    {m.peca_retirada || m.peca_instalada ? (
+                      <p className="mt-1 text-sm">
+                        <span className="text-muted-foreground">Saiu:</span> {m.peca_retirada ?? "—"}{" "}
+                        <span className="text-muted-foreground">· Entrou:</span> {m.peca_instalada ?? "—"}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-sm whitespace-pre-wrap">{m.descricao}</p>
                     {m.atendimentos && m.atendimento_id ? (
                       <Link
@@ -240,6 +255,32 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
                     </p>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {alteracoes.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Mudanças de hardware</CardTitle>
+                <p className="text-xs text-muted-foreground">Percebidas pela coleta entre dois envios.</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="flex flex-col gap-2.5 text-sm">
+                  {alteracoes.map((a) => {
+                    const d = descreverAlteracao(a);
+                    return (
+                      <li key={a.id}>
+                        <p className="text-xs text-muted-foreground">
+                          {formatarData(a.detectada_em)} · {d.nome}
+                        </p>
+                        <p className="break-words">
+                          {d.antes} <span className="text-muted-foreground">→</span> {d.depois}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
               </CardContent>
             </Card>
           ) : null}

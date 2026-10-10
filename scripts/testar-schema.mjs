@@ -651,6 +651,50 @@ async function main() {
   );
   verificar("lista malformada vira lista vazia", Array.isArray(eq3[0].discos) && eq3[0].discos.length === 0);
 
+  const { rows: alt } = await db.query(
+    `select componente, antes, depois from equipamento_alteracoes where equipamento_id = $1 order by componente`,
+    [eq1[0].id],
+  );
+  verificar(
+    "coleta detecta a troca de memória (8 GB para 16 GB)",
+    alt.some((a) => a.componente === "memoria" && a.antes === "8192" && a.depois === "16384"),
+    JSON.stringify(alt),
+  );
+  verificar(
+    "disco não lido não conta como troca de disco",
+    !alt.some((a) => a.componente === "disco"),
+    JSON.stringify(alt),
+  );
+
+  await db.exec(`update equipamentos set ultima_coleta_em = now() - interval '10 minutes' where id = '${eq1[0].id}'`);
+  await coleta({ ...maquina, memoria_mb: "16384", discos: [{ modelo: "SSD 480", tamanho_gb: 480 }] });
+  // Agora a base (SSD 480) foi lida: trocar por um de 1 TB tem de aparecer.
+  await db.exec(`update equipamentos set ultima_coleta_em = now() - interval '10 minutes' where id = '${eq1[0].id}'`);
+  await coleta({ ...maquina, memoria_mb: "16384", discos: [{ modelo: "SSD 1TB", tamanho_gb: 1000 }] });
+  const { rows: altDisco } = await db.query(
+    `select antes, depois from equipamento_alteracoes where equipamento_id = $1 and componente = 'disco'`,
+    [eq1[0].id],
+  );
+  verificar(
+    "troca de disco entre duas coletas lidas é registrada",
+    altDisco.length === 1 && altDisco[0].antes === "SSD 480 480 GB" && altDisco[0].depois === "SSD 1TB 1000 GB",
+    JSON.stringify(altDisco),
+  );
+
+  await deveRejeitar(
+    db,
+    "troca de peça exige informar a peça",
+    `insert into equipamento_manutencoes (org_id, equipamento_id, descricao, tipo)
+     values ('${orgId}', '${eq1[0].id}', 'Troca sem dizer qual', 'troca_peca')`,
+    "manutencoes_troca_tem_peca",
+  );
+  await db.exec(
+    `insert into equipamento_manutencoes (org_id, equipamento_id, descricao, tipo, peca_retirada, peca_instalada, custo)
+     values ('${orgId}', '${eq1[0].id}', 'Troca do SSD', 'troca_peca', 'SSD 240 GB', 'SSD 480 GB', 289.90)`,
+  );
+  const { rows: troca } = await db.query(`select custo from equipamento_manutencoes where tipo = 'troca_peca'`);
+  verificar("troca de peça com peça e custo é aceita", troca.length === 1 && Number(troca[0].custo) === 289.9);
+
   await deveRejeitar(
     db,
     "recusa chave de coleta desconhecida",
@@ -665,7 +709,7 @@ async function main() {
   );
 
   const { rows: usos } = await db.query(`select usos from coleta_chaves where prefixo = 'mbk_test'`);
-  verificar("uso da chave é contado", usos[0].usos === 2);
+  verificar("uso da chave é contado", usos[0].usos === 4, `veio ${usos[0].usos}`);
 
   await db.exec(`update coleta_chaves set revogada_em = now() where prefixo = 'mbk_test'`);
   await deveRejeitar(

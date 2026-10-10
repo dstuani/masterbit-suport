@@ -55,18 +55,43 @@ const dataHoraLocal = z
   .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida")
   .transform((v) => (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? `${v}:00-03:00` : v));
 
-export const manutencaoSchema = z.object({
-  equipamento_id: z.uuid("Equipamento inválido"),
-  realizada_em: dataHoraLocal,
-  descricao: z.string().trim().min(3, "Descreva o que foi feito").max(4000, "Até 4.000 caracteres"),
-  tempo_minutos: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length > 0 ? Number.parseInt(v, 10) : null))
-    .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 10080), "Informe os minutos (0 a 10.080)"),
-  atendimento_id: uuidOpcional,
-});
+export const TIPO_MANUTENCAO = ["preventiva", "corretiva", "troca_peca", "instalacao", "limpeza", "outro"] as const;
+
+// "289,90", "1.289,90" ou "289.90": com vírgula, o ponto é separador de milhar.
+const dinheiro = z
+  .string()
+  .trim()
+  .optional()
+  .transform((v) => {
+    const limpo = (v ?? "").replace(/R\$|\s/g, "");
+    if (limpo.length === 0) return null;
+    const numero = Number(limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo);
+    return Number.isFinite(numero) ? Math.round(numero * 100) / 100 : Number.NaN;
+  })
+  .refine((v) => v === null || (!Number.isNaN(v) && v >= 0 && v <= 1_000_000), "Valor inválido. Ex.: 289,90");
+
+export const manutencaoSchema = z
+  .object({
+    equipamento_id: z.uuid("Equipamento inválido"),
+    realizada_em: dataHoraLocal,
+    descricao: z.string().trim().min(3, "Descreva o que foi feito").max(4000, "Até 4.000 caracteres"),
+    tempo_minutos: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v && v.length > 0 ? Number.parseInt(v, 10) : null))
+      .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 10080), "Informe os minutos (0 a 10.080)"),
+    atendimento_id: uuidOpcional,
+    tipo: z.enum(TIPO_MANUTENCAO, "Escolha o tipo"),
+    peca_retirada: textoOpcional(200),
+    peca_instalada: textoOpcional(200),
+    custo: dinheiro,
+  })
+  .superRefine((d, ctx) => {
+    if (d.tipo === "troca_peca" && !d.peca_retirada && !d.peca_instalada) {
+      ctx.addIssue({ code: "custom", path: ["peca_instalada"], message: "Informe a peça instalada ou a retirada" });
+    }
+  });
 
 export const gerarChaveSchema = z.object({
   cliente_id: z.uuid("Cliente inválido"),

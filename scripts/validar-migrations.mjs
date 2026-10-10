@@ -87,6 +87,7 @@ async function main() {
     "equipamentos",
     "equipamento_manutencoes",
     "coleta_chaves",
+    "equipamento_alteracoes",
   ];
 
   const { rows } = await db.query(

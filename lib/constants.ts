@@ -52,6 +52,23 @@ export const TIPOS_EQUIPAMENTO = {
   outro: "Outro",
 } as const;
 
+export const TIPOS_MANUTENCAO = {
+  preventiva: "Preventiva",
+  corretiva: "Corretiva",
+  troca_peca: "Troca de peça",
+  instalacao: "Instalação / configuração",
+  limpeza: "Limpeza",
+  outro: "Outro",
+} as const;
+
+/** Componentes que a coleta compara entre um envio e outro. */
+export const COMPONENTES_ALTERACAO = {
+  memoria: "Memória",
+  processador: "Processador",
+  disco: "Discos",
+  sistema: "Sistema operacional",
+} as const;
+
 /** Sem coleta há mais que isso, a máquina aparece como "sem notícias" (agente parado ou máquina desligada). */
 export const DIAS_SEM_COLETA = 15;
 

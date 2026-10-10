@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e as funções do RLS (75 verificações) |
+| `npm run db:test` | testa triggers, constraints e as funções do RLS (80 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -142,7 +142,8 @@ app/
 │   ├── solicitacoes/       caixa de entrada do formulário da landing (triagem)
 │   ├── atendimentos/       lista, novo, [id] (detalhe) — o núcleo do sistema
 │   ├── clientes/           lista, novo, [id] (abas, inclusive Equipamentos com a coleta), [id]/editar, [id]/importar
-│   ├── equipamentos/       parque de máquinas: lista, novo (manual), [id] (ficha + manutenções), [id]/editar
+│   ├── equipamentos/       parque de máquinas: lista, novo (manual), [id] (ficha + manutenções), [id]/editar,
+│   │                       relatorio (manutenções, trocas de peça, situação do parque, CSV)
 │   ├── pendencias/         lista, nova
 │   ├── agenda/             lista + minicalendário, novo, [id]
 │   ├── consultas/          busca no histórico + buscas salvas + CSV
@@ -208,7 +209,7 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
 | **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
 | **Relatórios** | painel com filtros na URL (período, cliente, categoria, sistema, responsável, situação, canal, tipo, prioridade e a métrica atendimentos/tempo): indicadores com variação contra o período anterior, faixa de situação (barra de 100% por situação, situação dentro de cada tipo/categoria/canal e resolvidos por categoria), evolução (dia/semana/mês), barras por dimensão (clicar numa barra aplica o filtro), mapa de calor por dia e faixa do horário, lista do recorte e CSV | `/atendimentos/[id]` |
-| **Equipamentos** | parque de máquinas dos clientes: busca (nome, patrimônio, série, usuário, setor), filtros por cliente, tipo e situação (inclui "sem coleta há 15+ dias"); ficha com hardware, discos com espaço livre, rede e o histórico de manutenções (registrar manutenção, ligar ao atendimento) | ficha do cliente, aba Equipamentos: lista do cliente + **Coleta automática** (gerar chave e baixar o script, revogar chave) |
+| **Equipamentos** | parque de máquinas dos clientes: busca (nome, patrimônio, série, usuário, setor), filtros por cliente, tipo e situação (inclui "sem coleta há 15+ dias"); ficha com hardware, discos com espaço livre, rede, mudanças de hardware percebidas pela coleta e o histórico de manutenções (tipo, peça retirada/instalada, custo, atendimento). **Relatório** (`/equipamentos/relatorio`): período, cliente, tipo de equipamento e tipo de manutenção; indicadores, barras clicáveis, discos quase cheios, sem coleta, tabelas e CSV de manutenções | ficha do cliente, aba Equipamentos: lista do cliente + **Coleta automática** (gerar chave e baixar o script, revogar chave) |
 | **Configurações** | Sistemas, Categorias, Conta (tema, perfil, senha); Equipe e Auditoria só para `owner` | Equipe: papel, ativar/desativar, novo usuário com senha temporária |
 
 **Fluxo central:** cliente → atendimento → interações na timeline (texto, tempo,
@@ -219,7 +220,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-23 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
+24 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -241,7 +242,8 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               │                                               └─ consultoria_anexos
               │   (SEM TELA no app desde 07/10/2026: a Consultoria Citel foi retirada;
               │    as tabelas e os dados continuam no banco, as migrations não se editam)
-              ├─ equipamentos ── cliente, filial ─── equipamento_manutencoes (append-only)
+              ├─ equipamentos ── cliente, filial ─┬─ equipamento_manutencoes (append-only; tipo, peças, custo)
+              │                                    └─ equipamento_alteracoes (hardware que mudou entre coletas)
               ├─ coleta_chaves (por cliente; só o hash SHA-256 da chave)
               ├─ solicitacoes (formulário público da landing; só a função
               │               registrar_solicitacao() cria linhas)
@@ -285,7 +287,10 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
   (SECURITY DEFINER, liberada a `anon`). A chave decide cliente e organização; o banco só
   guarda o SHA-256 dela. Repetição da mesma máquina em menos de 5 minutos é ignorada, cada
   chave cria no máximo 300 máquinas novas por hora, textos e listas são cortados. A
-  coleta nunca sobrescreve patrimônio, setor, observações, tipo e filial. Manutenções
+  coleta nunca sobrescreve patrimônio, setor, observações, tipo e filial. A mesma função
+  compara memória, processador, discos (`assinatura_discos`) e sistema com o envio anterior
+  e grava em `equipamento_alteracoes` (só leitura pelo app); valor vazio de um dos lados não
+  conta como troca. Troca de peça registrada exige peça retirada ou instalada. Manutenções
   são append-only (só SELECT e INSERT). Equipamentos não têm auditoria automática: cada
   coleta é um UPDATE e lotaria o `audit_logs`.
 
@@ -499,3 +504,10 @@ português, curtos.
     dois lados (`sha256` do Node e `sha256(convert_to(...))` do Postgres); mudar um exige
     mudar o outro e invalida as chaves existentes. Os códigos de erro (`chave_invalida`,
     `dados_invalidos`, `limite_excedido`) aparecem no log `ultimo-envio.txt` do computador.
+22. **Relatório de equipamentos (migration `20261011120000`).** A migration redefine
+    `registrar_coleta` inteira (CREATE OR REPLACE mantém o grant a `anon`): ao mudar a função
+    de novo, parta da versão desta migration, não da `20261010120000`. O componente de barras
+    (`RankingBarras` em `app/(app)/relatorios/graficos.tsx`) é compartilhado: recebe `base`
+    (página que recebe o filtro), `href` por item e `ordenar={false}` para faixas com ordem
+    própria. A parte visual do relatório fica em `relatorio/painel.tsx`, separada da busca,
+    para poder ser vista com dados de exemplo.

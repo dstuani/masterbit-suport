@@ -1054,6 +1054,51 @@ export type Database = {
           },
         ];
       };
+      equipamento_alteracoes: {
+        Row: {
+          id: string;
+          org_id: string;
+          equipamento_id: string;
+          componente: string;
+          antes: string | null;
+          depois: string | null;
+          detectada_em: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          equipamento_id: string;
+          componente: string;
+          antes?: string | null;
+          depois?: string | null;
+          detectada_em?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          equipamento_id?: string;
+          componente?: string;
+          antes?: string | null;
+          depois?: string | null;
+          detectada_em?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipamento_alteracoes_equipamento_id_fkey";
+            columns: ["equipamento_id"];
+            isOneToOne: false;
+            referencedRelation: "equipamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamento_alteracoes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       equipamento_manutencoes: {
         Row: {
           id: string;
@@ -1065,6 +1110,10 @@ export type Database = {
           tempo_minutos: number | null;
           autor_id: string | null;
           created_at: string;
+          tipo: string;
+          peca_retirada: string | null;
+          peca_instalada: string | null;
+          custo: number | null;
         };
         Insert: {
           id?: string;
@@ -1076,6 +1125,10 @@ export type Database = {
           tempo_minutos?: number | null;
           autor_id?: string | null;
           created_at?: string;
+          tipo?: string;
+          peca_retirada?: string | null;
+          peca_instalada?: string | null;
+          custo?: number | null;
         };
         Update: {
           id?: string;
@@ -1087,6 +1140,10 @@ export type Database = {
           tempo_minutos?: number | null;
           autor_id?: string | null;
           created_at?: string;
+          tipo?: string;
+          peca_retirada?: string | null;
+          peca_instalada?: string | null;
+          custo?: number | null;
         };
         Relationships: [
           {
