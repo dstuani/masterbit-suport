@@ -33,6 +33,8 @@ da Masterbit). Ele registra cada atendimento feito para cada cliente e permite, 
 - **consultar o histórico**: "como resolvi isso da última vez?" — por palavra, por
   cliente, ou por casos parecidos já resolvidos;
 - ver **relatórios** de volume e horas gastas;
+- controlar o **parque de máquinas** dos clientes: hardware coletado automaticamente por um
+  script em cada computador e o histórico de manutenções de cada máquina.
 
 Uso atual: um único usuário. O sistema foi desenhado desde o início para equipe
 (papéis, atribuição, auditoria), mas a operação real é de uma pessoa só.
@@ -108,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e as funções do RLS (60 verificações) |
+| `npm run db:test` | testa triggers, constraints e as funções do RLS (75 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -139,7 +141,8 @@ app/
 │   ├── dashboard/
 │   ├── solicitacoes/       caixa de entrada do formulário da landing (triagem)
 │   ├── atendimentos/       lista, novo, [id] (detalhe) — o núcleo do sistema
-│   ├── clientes/           lista, novo, [id] (abas), [id]/editar, [id]/importar
+│   ├── clientes/           lista, novo, [id] (abas, inclusive Equipamentos com a coleta), [id]/editar, [id]/importar
+│   ├── equipamentos/       parque de máquinas: lista, novo (manual), [id] (ficha + manutenções), [id]/editar
 │   ├── pendencias/         lista, nova
 │   ├── agenda/             lista + minicalendário, novo, [id]
 │   ├── consultas/          busca no histórico + buscas salvas + CSV
@@ -160,6 +163,7 @@ lib/
 ├── forms.ts         EstadoFormulario, erroDeValidacao, mensagemDoErro
 ├── utils.ts         cn() e formatadores pt-BR (data, duração, tamanho, moeda, CPF/CNPJ)
 ├── anexos.ts        regras de anexo compartilhadas (tipos aceitos, 10 MB, assinatura)
+├── agente.ts        gera o script PowerShell de coleta de inventário (com URL e chave do cliente)
 ├── tema.ts          tema claro/escuro/automático (localStorage + script anti-piscar)
 ├── schemas/         Zod por entidade — mesma validação no form e na Server Action
 ├── services/        regra de negócio e acesso ao banco, um arquivo por domínio
@@ -204,6 +208,7 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
 | **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
 | **Relatórios** | painel com filtros na URL (período, cliente, categoria, sistema, responsável, situação, canal, tipo, prioridade e a métrica atendimentos/tempo): indicadores com variação contra o período anterior, faixa de situação (barra de 100% por situação, situação dentro de cada tipo/categoria/canal e resolvidos por categoria), evolução (dia/semana/mês), barras por dimensão (clicar numa barra aplica o filtro), mapa de calor por dia e faixa do horário, lista do recorte e CSV | `/atendimentos/[id]` |
+| **Equipamentos** | parque de máquinas dos clientes: busca (nome, patrimônio, série, usuário, setor), filtros por cliente, tipo e situação (inclui "sem coleta há 15+ dias"); ficha com hardware, discos com espaço livre, rede e o histórico de manutenções (registrar manutenção, ligar ao atendimento) | ficha do cliente, aba Equipamentos: lista do cliente + **Coleta automática** (gerar chave e baixar o script, revogar chave) |
 | **Configurações** | Sistemas, Categorias, Conta (tema, perfil, senha); Equipe e Auditoria só para `owner` | Equipe: papel, ativar/desativar, novo usuário com senha temporária |
 
 **Fluxo central:** cliente → atendimento → interações na timeline (texto, tempo,
@@ -214,7 +219,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-20 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
+23 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -236,6 +241,8 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               │                                               └─ consultoria_anexos
               │   (SEM TELA no app desde 07/10/2026: a Consultoria Citel foi retirada;
               │    as tabelas e os dados continuam no banco, as migrations não se editam)
+              ├─ equipamentos ── cliente, filial ─── equipamento_manutencoes (append-only)
+              ├─ coleta_chaves (por cliente; só o hash SHA-256 da chave)
               ├─ solicitacoes (formulário público da landing; só a função
               │               registrar_solicitacao() cria linhas)
               └─ audit_logs   (preenchida só por trigger)
@@ -273,6 +280,14 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
   ao papel `anon`: valida tamanhos e e-mail, ignora quem preenche o campo-armadilha `p_site`,
   freia 3 envios por e-mail e 30 no total por hora, e usa a primeira organização. O
   conteúdo enviado nunca é editável; só o status muda (e o trigger registra quem tratou).
+
+- **Coleta de equipamentos:** o agente chama a função `registrar_coleta(chave, dados)`
+  (SECURITY DEFINER, liberada a `anon`). A chave decide cliente e organização; o banco só
+  guarda o SHA-256 dela. Repetição da mesma máquina em menos de 5 minutos é ignorada, cada
+  chave cria no máximo 300 máquinas novas por hora, textos e listas são cortados. A
+  coleta nunca sobrescreve patrimônio, setor, observações, tipo e filial. Manutenções
+  são append-only (só SELECT e INSERT). Equipamentos não têm auditoria automática: cada
+  coleta é um UPDATE e lotaria o `audit_logs`.
 
 ### Storage
 
@@ -472,3 +487,15 @@ português, curtos.
     ficam abaixo de 3:1, por isso a legenda sempre mostra os números e há tabela equivalente.
     Resolvido é azul em todo o painel; a cor segue a situação, nunca a posição. Todo gráfico tem gêmea em tabela (`<details>`
     ou a própria `<table>` do mapa de calor).
+21. **Agente de coleta (`lib/agente.ts`, migration `20261010120000`).** O script é PowerShell 5.1
+    gerado dentro de um template string do TypeScript: **não pode ter crase nem `${`** no
+    texto do PowerShell (usa só aspas simples e `$variavel`). O download leva BOM (sem ele o
+    PowerShell 5.1 lê como ANSI) e quebra de linha CRLF. A instalação cria a tarefa agendada
+    "Masterbit Suport - Inventario" (SYSTEM, ao ligar + diária às 12h) e copia o script para
+    `C:\ProgramData\MasterbitSuport`, com permissão só para SYSTEM e Administradores por SID (o
+    nome do grupo muda com o idioma). A chave de coleta fica nesse arquivo: quem é
+    administrador da máquina consegue lê-la e enviar inventário falso **daquele cliente** —
+    o remédio é revogar a chave na ficha do cliente. O hash da chave é calculado igual nos
+    dois lados (`sha256` do Node e `sha256(convert_to(...))` do Postgres); mudar um exige
+    mudar o outro e invalida as chaves existentes. Os códigos de erro (`chave_invalida`,
+    `dados_invalidos`, `limite_excedido`) aparecem no log `ultimo-envio.txt` do computador.

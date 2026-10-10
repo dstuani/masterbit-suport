@@ -778,6 +778,70 @@ export type Database = {
           },
         ];
       };
+      coleta_chaves: {
+        Row: {
+          id: string;
+          org_id: string;
+          cliente_id: string;
+          hash: string;
+          prefixo: string;
+          descricao: string | null;
+          criada_por: string | null;
+          criada_em: string;
+          revogada_em: string | null;
+          ultimo_uso_em: string | null;
+          usos: number;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          cliente_id: string;
+          hash: string;
+          prefixo: string;
+          descricao?: string | null;
+          criada_por?: string | null;
+          criada_em?: string;
+          revogada_em?: string | null;
+          ultimo_uso_em?: string | null;
+          usos?: number;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          cliente_id?: string;
+          hash?: string;
+          prefixo?: string;
+          descricao?: string | null;
+          criada_por?: string | null;
+          criada_em?: string;
+          revogada_em?: string | null;
+          ultimo_uso_em?: string | null;
+          usos?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coleta_chaves_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coleta_chaves_criada_por_fkey";
+            columns: ["criada_por"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coleta_chaves_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       consultoria_anexos: {
         Row: {
           id: string;
@@ -986,6 +1050,189 @@ export type Database = {
             columns: ["projeto_id"];
             isOneToOne: false;
             referencedRelation: "consultoria_projetos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      equipamento_manutencoes: {
+        Row: {
+          id: string;
+          org_id: string;
+          equipamento_id: string;
+          atendimento_id: string | null;
+          realizada_em: string;
+          descricao: string;
+          tempo_minutos: number | null;
+          autor_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          equipamento_id: string;
+          atendimento_id?: string | null;
+          realizada_em?: string;
+          descricao: string;
+          tempo_minutos?: number | null;
+          autor_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          equipamento_id?: string;
+          atendimento_id?: string | null;
+          realizada_em?: string;
+          descricao?: string;
+          tempo_minutos?: number | null;
+          autor_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipamento_manutencoes_atendimento_id_fkey";
+            columns: ["atendimento_id"];
+            isOneToOne: false;
+            referencedRelation: "atendimentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamento_manutencoes_autor_id_fkey";
+            columns: ["autor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamento_manutencoes_equipamento_id_fkey";
+            columns: ["equipamento_id"];
+            isOneToOne: false;
+            referencedRelation: "equipamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamento_manutencoes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      equipamentos: {
+        Row: {
+          id: string;
+          org_id: string;
+          cliente_id: string;
+          filial_id: string | null;
+          identificador: string | null;
+          nome: string;
+          tipo: string;
+          patrimonio: string | null;
+          setor: string | null;
+          observacoes: string | null;
+          fabricante: string | null;
+          modelo: string | null;
+          numero_serie: string | null;
+          sistema_operacional: string | null;
+          versao_so: string | null;
+          processador: string | null;
+          nucleos: number | null;
+          memoria_mb: number | null;
+          discos: Json;
+          volumes: Json;
+          rede: Json;
+          usuario: string | null;
+          dominio: string | null;
+          origem: "agente" | "manual";
+          ativo: boolean;
+          ultima_coleta_em: string | null;
+          coletas: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          cliente_id: string;
+          filial_id?: string | null;
+          identificador?: string | null;
+          nome: string;
+          tipo?: string;
+          patrimonio?: string | null;
+          setor?: string | null;
+          observacoes?: string | null;
+          fabricante?: string | null;
+          modelo?: string | null;
+          numero_serie?: string | null;
+          sistema_operacional?: string | null;
+          versao_so?: string | null;
+          processador?: string | null;
+          nucleos?: number | null;
+          memoria_mb?: number | null;
+          discos?: Json;
+          volumes?: Json;
+          rede?: Json;
+          usuario?: string | null;
+          dominio?: string | null;
+          origem?: "agente" | "manual";
+          ativo?: boolean;
+          ultima_coleta_em?: string | null;
+          coletas?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          cliente_id?: string;
+          filial_id?: string | null;
+          identificador?: string | null;
+          nome?: string;
+          tipo?: string;
+          patrimonio?: string | null;
+          setor?: string | null;
+          observacoes?: string | null;
+          fabricante?: string | null;
+          modelo?: string | null;
+          numero_serie?: string | null;
+          sistema_operacional?: string | null;
+          versao_so?: string | null;
+          processador?: string | null;
+          nucleos?: number | null;
+          memoria_mb?: number | null;
+          discos?: Json;
+          volumes?: Json;
+          rede?: Json;
+          usuario?: string | null;
+          dominio?: string | null;
+          origem?: "agente" | "manual";
+          ativo?: boolean;
+          ultima_coleta_em?: string | null;
+          coletas?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipamentos_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamentos_filial_id_fkey";
+            columns: ["filial_id"];
+            isOneToOne: false;
+            referencedRelation: "filiais";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipamentos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
             referencedColumns: ["id"];
           },
         ];
@@ -1447,6 +1694,7 @@ export type Database = {
       acao_auditoria: "INSERT" | "UPDATE" | "DELETE";
       ambiente_sistema: "producao" | "homologacao" | "teste";
       canal_atendimento: "telefone" | "whatsapp" | "email" | "presencial" | "acesso_remoto" | "chat" | "interno";
+      origem_equipamento: "agente" | "manual";
       prioridade: "baixa" | "media" | "alta" | "urgente";
       responsavel_pendencia: "eu" | "cliente" | "terceiro";
       role_usuario: "owner" | "tecnico" | "visualizador";

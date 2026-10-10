@@ -84,6 +84,9 @@ async function main() {
     "consultoria_comentarios",
     "consultoria_anexos",
     "solicitacoes",
+    "equipamentos",
+    "equipamento_manutencoes",
+    "coleta_chaves",
   ];
 
   const { rows } = await db.query(

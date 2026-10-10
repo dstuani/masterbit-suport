@@ -23,6 +23,10 @@ const TRADUCOES: [string, string][] = [
   ["pendencias_tem_origem", "A pendência precisa estar ligada a um atendimento ou a um cliente."],
   ["pendencias_terceiro_identificado", "Informe quem é o terceiro responsável."],
   ["eventos_intervalo_valido", "O término do evento não pode ser antes do início."],
+  ["equipamentos_nome_valido", "O nome do equipamento deve ter até 120 caracteres."],
+  ["equipamentos_identificador_por_cliente", "Esta máquina já está cadastrada neste cliente."],
+  ["manutencoes_descricao_valida", "Descreva a manutenção (até 4.000 caracteres)."],
+  ["manutencoes_tempo_valido", "O tempo deve ficar entre 0 e 10.080 minutos (7 dias)."],
   ["violates foreign key constraint", "Existe registro dependente que impede esta operação."],
   ["row-level security", "Sem permissão para esta operação."],
 ];

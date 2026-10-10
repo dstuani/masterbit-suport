@@ -22,6 +22,12 @@ export function formatarRelativo(valor: string | Date | null | undefined) {
   return formatDistanceToNow(new Date(valor), { addSuffix: true, locale: ptBR });
 }
 
+/** "8 GB", "512 MB": memória como as pessoas falam. */
+export function formatarMemoria(mb: number | null | undefined) {
+  if (!mb) return null;
+  return mb >= 1024 ? `${Math.round(mb / 1024)} GB` : `${mb} MB`;
+}
+
 /** Converte minutos em "2h 15min", como aparece no tempo gasto do atendimento. */
 export function formatarDuracao(minutos: number | null | undefined) {
   if (!minutos) return "0min";

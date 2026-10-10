@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Upload } from "lucide-react";
+import { Pencil, Plus, Upload } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
@@ -17,8 +17,10 @@ import {
   listarSistemasDoCliente,
   obterCliente,
 } from "@/lib/services/clientes";
-import { formatarData, formatarDocumento } from "@/lib/utils";
+import { listarChaves, listarEquipamentos } from "@/lib/services/equipamentos";
+import { formatarData, formatarDocumento, formatarMemoria, formatarRelativo } from "@/lib/utils";
 import { removerSistemaDoClienteAction } from "../actions";
+import { ColetaAutomatica } from "./coleta";
 import { SecaoContatos } from "./contatos";
 import { FormularioFilial, FormularioSistemaDoCliente } from "./formularios";
 
@@ -27,6 +29,7 @@ const ABAS = [
   { chave: "filiais", rotulo: "Filiais" },
   { chave: "contatos", rotulo: "Contatos" },
   { chave: "sistemas", rotulo: "Sistemas" },
+  { chave: "equipamentos", rotulo: "Equipamentos" },
 ] as const;
 
 const AMBIENTES: Record<string, string> = {
@@ -67,6 +70,15 @@ export default async function ClientePage({
     contarAtendimentosDoCliente(id),
     podeEscreverAgora(),
   ]);
+
+  // Só a aba de equipamentos precisa destes dados (e a lista de chaves só aparece para quem escreve).
+  const [equipamentos, chaves] =
+    aba === "equipamentos"
+      ? await Promise.all([
+          listarEquipamentos({ clienteId: id, situacao: "ativos" }),
+          podeEditar ? listarChaves(id) : Promise.resolve([]),
+        ])
+      : [[], []];
 
   return (
     <>
@@ -197,6 +209,55 @@ export default async function ClientePage({
             </Tabela>
           )}
         </Secao>
+      ) : null}
+
+      {aba === "equipamentos" ? (
+        <div className="flex flex-col gap-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardTitle>Equipamentos em uso ({equipamentos.length})</CardTitle>
+              {podeEditar ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/equipamentos/novo?cliente=${id}`}>
+                    <Plus />
+                    Cadastrar à mão
+                  </Link>
+                </Button>
+              ) : null}
+            </CardHeader>
+            {equipamentos.length === 0 ? (
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Nenhum equipamento ainda. Gere o script abaixo e instale nos computadores do cliente.
+                </p>
+              </CardContent>
+            ) : (
+              <Tabela colunas={["Equipamento", "Sistema", "Hardware", "Última coleta"]}>
+                {equipamentos.map((eq) => (
+                  <tr key={eq.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/equipamentos/${eq.id}`} className="font-medium text-primary hover:underline">
+                        {eq.nome}
+                      </Link>
+                      <span className="block text-xs text-muted-foreground">
+                        {[eq.setor, eq.usuario].filter(Boolean).join(" · ") || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{eq.sistema_operacional ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {[eq.processador, formatarMemoria(eq.memoria_mb)].filter(Boolean).join(" · ") || "—"}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">
+                      {eq.origem === "manual" ? "Manual" : eq.ultima_coleta_em ? formatarRelativo(eq.ultima_coleta_em) : "Nunca"}
+                    </td>
+                  </tr>
+                ))}
+              </Tabela>
+            )}
+          </Card>
+
+          {podeEditar ? <ColetaAutomatica clienteId={id} chaves={chaves} podeEditar={podeEditar} /> : null}
+        </div>
       ) : null}
     </>
   );

@@ -9,6 +9,7 @@ import {
   BarChart3,
   Building2,
   Inbox,
+  Monitor,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,7 +32,10 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
   },
   {
     secao: "Base",
-    itens: [{ titulo: "Clientes", href: "/clientes", icone: Building2 }],
+    itens: [
+      { titulo: "Clientes", href: "/clientes", icone: Building2 },
+      { titulo: "Equipamentos", href: "/equipamentos", icone: Monitor },
+    ],
   },
   {
     secao: "Análise",

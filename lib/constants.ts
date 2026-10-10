@@ -44,6 +44,17 @@ export const ORDEM_SITUACAO = [
   "cancelado",
 ] as const;
 
+export const TIPOS_EQUIPAMENTO = {
+  computador: "Computador",
+  notebook: "Notebook",
+  servidor: "Servidor",
+  impressora: "Impressora",
+  outro: "Outro",
+} as const;
+
+/** Sem coleta há mais que isso, a máquina aparece como "sem notícias" (agente parado ou máquina desligada). */
+export const DIAS_SEM_COLETA = 15;
+
 export const PRIORIDADES = {
   baixa: {
     rotulo: "Baixa",

@@ -605,6 +605,76 @@ async function main() {
     tratada.length === 1 && tratada[0].tratada_por === userId && tratada[0].tratada_em !== null,
   );
 
+  // ── Equipamentos: porta do agente de coleta ──
+  const CHAVE = "mbk_teste_chave_de_coleta_123456";
+  await db.exec(
+    `insert into coleta_chaves (org_id, cliente_id, hash, prefixo)
+     values ('${orgId}', '${clienteId}', encode(sha256(convert_to('${CHAVE}', 'UTF8')), 'hex'), 'mbk_test')`,
+  );
+  const coleta = (dados, chave = CHAVE) =>
+    db.query(`select registrar_coleta($1, $2::jsonb) as r`, [chave, JSON.stringify(dados)]);
+  const maquina = {
+    identificador: "4c4c4544-0042-3510-8052-b4c04f4e3332",
+    nome: "CAIXA-01",
+    tipo: "notebook",
+    processador: "Intel Core i5",
+    memoria_mb: "8192",
+    discos: [{ modelo: "SSD 240", tamanho_gb: 240 }],
+  };
+
+  const { rows: r1 } = await coleta(maquina);
+  const { rows: eq1 } = await db.query(
+    `select id, origem, coletas, tipo, memoria_mb, org_id from equipamentos where identificador = $1`,
+    [maquina.identificador],
+  );
+  verificar(
+    "coleta com chave válida cria o equipamento do cliente",
+    r1[0].r === "ok" && eq1.length === 1 && eq1[0].origem === "agente" && eq1[0].coletas === 1 && eq1[0].org_id === orgId,
+  );
+
+  const { rows: r2 } = await coleta(maquina);
+  const { rows: eq2 } = await db.query(`select coletas from equipamentos where id = $1`, [eq1[0].id]);
+  verificar("coleta repetida em menos de 5 minutos é ignorada", r2[0].r === "ignorada" && eq2[0].coletas === 1);
+
+  await db.exec(
+    `update equipamentos set ultima_coleta_em = now() - interval '10 minutes', patrimonio = 'PAT-001', tipo = 'servidor'
+     where id = '${eq1[0].id}'`,
+  );
+  await coleta({ ...maquina, memoria_mb: "16384", discos: "não é lista" });
+  const { rows: eq3 } = await db.query(
+    `select coletas, memoria_mb, patrimonio, tipo, discos from equipamentos where id = $1`,
+    [eq1[0].id],
+  );
+  verificar(
+    "nova coleta atualiza o hardware e preserva o que o técnico preencheu",
+    eq3[0].coletas === 2 && eq3[0].memoria_mb === 16384 && eq3[0].patrimonio === "PAT-001" && eq3[0].tipo === "servidor",
+  );
+  verificar("lista malformada vira lista vazia", Array.isArray(eq3[0].discos) && eq3[0].discos.length === 0);
+
+  await deveRejeitar(
+    db,
+    "recusa chave de coleta desconhecida",
+    `select registrar_coleta('mbk_chave_que_nao_existe_000000', '{"identificador":"abcdefgh-1","nome":"X"}'::jsonb)`,
+    "chave_invalida",
+  );
+  await deveRejeitar(
+    db,
+    "recusa coleta sem identificador da máquina",
+    `select registrar_coleta('${CHAVE}', '{"nome":"SEM-ID"}'::jsonb)`,
+    "dados_invalidos",
+  );
+
+  const { rows: usos } = await db.query(`select usos from coleta_chaves where prefixo = 'mbk_test'`);
+  verificar("uso da chave é contado", usos[0].usos === 2);
+
+  await db.exec(`update coleta_chaves set revogada_em = now() where prefixo = 'mbk_test'`);
+  await deveRejeitar(
+    db,
+    "chave revogada para de funcionar",
+    `select registrar_coleta('${CHAVE}', '{"identificador":"outra-maquina-123","nome":"NOVA"}'::jsonb)`,
+    "chave_invalida",
+  );
+
   await db.close();
 
   console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);
