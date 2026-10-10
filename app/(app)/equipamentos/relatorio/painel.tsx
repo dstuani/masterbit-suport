@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, startOfYear, subDays } from "date-fns";
-import { ArrowLeft, HardDrive, Monitor, WifiOff, Wrench } from "lucide-react";
+import { ArrowLeft, FileText, HardDrive, Monitor, WifiOff, Wrench } from "lucide-react";
 
 import { RankingBarras } from "@/app/(app)/relatorios/graficos";
 import { PageHeader } from "@/components/layout/page-header";
@@ -70,6 +70,13 @@ export function PainelRelatorioEquipamentos({
                 <ArrowLeft />
                 Equipamentos
               </Link>
+            </Button>
+            {/* Nova aba: a folha de impressão abre a janela de "Salvar como PDF" sozinha. */}
+            <Button asChild size="sm" variant="outline">
+              <a href={`/imprimir/manutencoes?${new URLSearchParams(atuais)}`} target="_blank" rel="noopener">
+                <FileText />
+                Exportar PDF
+              </a>
             </Button>
             <BotaoCsv
               nomeArquivo={`manutencoes-${de}-${ate}.csv`}

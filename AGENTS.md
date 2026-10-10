@@ -135,6 +135,8 @@ app/
 ├── (auth)/nova-senha/      define a nova senha (exige a sessão aberta pelo link)
 ├── auth/confirmar/route.ts GET: troca o ?code= do e-mail por sessão e vai a /nova-senha
 ├── sair/route.ts           GET: encerra a sessão e volta ao login (?motivo=inativo)
+├── imprimir/manutencoes/  folha A4 do relatório de manutenções (abre "Salvar como PDF"); fora do (app)
+│                           para não ter menu. A parte visual fica em folha.tsx, separada da busca
 ├── error.tsx, global-error.tsx, not-found.tsx    telas de erro/404 (raiz)
 ├── (app)/                  área autenticada (layout com Sidebar + Header)
 │   ├── error.tsx, not-found.tsx    erro e 404 dentro do layout (menu continua)
