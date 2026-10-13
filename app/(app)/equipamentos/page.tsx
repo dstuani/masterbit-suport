@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Monitor, Plus, Search } from "lucide-react";
+import { BarChart3, ChevronRight, Monitor, Plus, Search } from "lucide-react";
 
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
@@ -19,6 +19,7 @@ import {
   type FiltrosEquipamentos,
 } from "@/lib/services/equipamentos";
 import { cn, formatarMemoria, formatarRelativo } from "@/lib/utils";
+import { ExpandirTodos } from "./expandir";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Equipamentos" };
@@ -56,6 +57,7 @@ export default async function EquipamentosPage({
   ]);
 
   const limite = new Date(limiteSemColeta()).getTime();
+  const grupos = agruparPorCliente(equipamentos);
   const filtrando = Boolean(params.busca || params.cliente || tipo || (situacao && situacao !== "ativos"));
 
   return (
@@ -149,32 +151,80 @@ export default async function EquipamentosPage({
         </Card>
       ) : (
         <>
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-border bg-surface-muted text-left">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Equipamento</th>
-                    <th className="hidden px-4 py-2.5 font-medium md:table-cell">Cliente</th>
-                    <th className="hidden px-4 py-2.5 font-medium lg:table-cell">Sistema</th>
-                    <th className="hidden px-4 py-2.5 font-medium lg:table-cell">Hardware</th>
-                    <th className="hidden px-4 py-2.5 font-medium md:table-cell">Última coleta</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equipamentos.map((e) => (
-                    <LinhaEquipamento key={e.id} equipamento={e} limite={limite} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {equipamentos.length} {equipamentos.length === 1 ? "equipamento" : "equipamentos"}
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {grupos.length} {grupos.length === 1 ? "cliente" : "clientes"} · {equipamentos.length}{" "}
+              {equipamentos.length === 1 ? "equipamento" : "equipamentos"}
+            </p>
+            <ExpandirTodos />
+          </div>
+          <div className="flex flex-col gap-3">
+            {grupos.map((g) => (
+              <BlocoCliente key={g.id} grupo={g} limite={limite} aberto={Boolean(params.busca)} />
+            ))}
+          </div>
         </>
       )}
     </>
+  );
+}
+
+type Grupo = { id: string; nome: string; itens: EquipamentoComContexto[] };
+
+/** Um bloco por cliente, em ordem alfabética; dentro de cada um, a ordem de nome que o serviço já entrega. */
+function agruparPorCliente(lista: EquipamentoComContexto[]): Grupo[] {
+  const mapa = new Map<string, Grupo>();
+  for (const e of lista) {
+    const g = mapa.get(e.cliente_id) ?? { id: e.cliente_id, nome: e.clientes?.razao_social ?? "Sem cliente", itens: [] };
+    g.itens.push(e);
+    mapa.set(e.cliente_id, g);
+  }
+  return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+function BlocoCliente({ grupo, limite, aberto }: { grupo: Grupo; limite: number; aberto: boolean }) {
+  const semColeta = grupo.itens.filter(
+    (e) => e.origem === "agente" && e.ativo && (!e.ultima_coleta_em || new Date(e.ultima_coleta_em).getTime() < limite),
+  ).length;
+  const doAgente = grupo.itens.some((e) => e.origem === "agente" && e.ativo);
+
+  return (
+    // Recolhido por padrão; a busca abre os blocos para o resultado não ficar escondido.
+    <details data-cliente open={aberto} className="group overflow-hidden rounded-xl border border-border bg-surface">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 bg-surface-muted px-4 py-2.5 select-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
+        <span className="text-sm font-medium">{grupo.nome}</span>
+        <span className="text-xs text-muted-foreground">
+          {grupo.itens.length} {grupo.itens.length === 1 ? "equipamento" : "equipamentos"}
+        </span>
+        <span className="ml-auto">
+          {semColeta > 0 ? (
+            <Badge>
+              {semColeta} sem coleta há {DIAS_SEM_COLETA}+ dias
+            </Badge>
+          ) : doAgente ? (
+            <span className="text-xs text-muted-foreground">coleta em dia</span>
+          ) : null}
+        </span>
+      </summary>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-y border-border text-left">
+            <tr>
+              <th className="px-4 py-2 font-medium">Equipamento</th>
+              <th className="hidden px-4 py-2 font-medium lg:table-cell">Sistema</th>
+              <th className="hidden px-4 py-2 font-medium lg:table-cell">Hardware</th>
+              <th className="hidden px-4 py-2 font-medium md:table-cell">Última coleta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grupo.itens.map((e) => (
+              <LinhaEquipamento key={e.id} equipamento={e} limite={limite} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
 
@@ -203,16 +253,12 @@ function LinhaEquipamento({ equipamento: e, limite }: { equipamento: Equipamento
           {!e.ativo ? <Badge>Desativado</Badge> : null}
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {[e.patrimonio ? `Patr. ${e.patrimonio}` : null, e.setor, e.usuario].filter(Boolean).join(" · ") || "—"}
+          {[e.filiais?.nome, e.patrimonio ? `Patr. ${e.patrimonio}` : null, e.setor, e.usuario].filter(Boolean).join(" · ") || "—"}
         </p>
         {/* Celular: o resumo das colunas escondidas. */}
         <p className="mt-0.5 text-xs text-muted-foreground md:hidden">
-          {e.clientes?.razao_social} · {coleta}
+          {coleta}
         </p>
-      </td>
-      <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-        {e.clientes?.razao_social}
-        {e.filiais ? <span className="block text-xs">{e.filiais.nome}</span> : null}
       </td>
       <td className="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{e.sistema_operacional ?? "—"}</td>
       <td className="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{hardware || "—"}</td>
