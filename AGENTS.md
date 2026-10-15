@@ -149,7 +149,7 @@ app/
 │   ├── pendencias/         lista, nova
 │   ├── agenda/             lista + minicalendário, novo, [id]
 │   ├── consultas/          busca no histórico + buscas salvas + CSV
-│   ├── casos-parecidos/    "já resolvi algo assim?"
+│   ├── casos-parecidos/    "já resolvi algo assim?" (fora do menu desde 15/10/2026; a rota continua)
 │   ├── relatorios/         métricas do período + CSV
 │   └── configuracoes/      abas: sistemas, categorias, conta, equipe, auditoria
 └── api/clientes/[id]/contexto/route.ts   GET: filiais/contatos/sistemas de um cliente
