@@ -67,12 +67,6 @@ export default async function RelatoriosPage({
 
   return (
     <>
-      <PageHeader
-        titulo="Relatórios"
-        descricao="Volume, prazos e tempo de suporte. Clique numa barra para filtrar por ela."
-        acoes={<BotaoExportarRelatorio itens={relatorio.itens} periodo={{ de, ate }} />}
-      />
-
       <FiltrosRelatorio de={de} ate={ate} metrica={metrica} opcoes={opcoes} />
 
       <div id="relatorio-conteudo" className="transition-opacity data-[carregando=true]:opacity-60">
@@ -173,6 +167,10 @@ export default async function RelatoriosPage({
             <ListaDoRecorte relatorio={relatorio} />
           </div>
         )}
+
+        <div className="mt-6 flex justify-end">
+          <BotaoExportarRelatorio itens={relatorio.itens} periodo={{ de, ate }} />
+        </div>
       </div>
     </>
   );

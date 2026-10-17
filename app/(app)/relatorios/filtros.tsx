@@ -89,9 +89,9 @@ export function FiltrosRelatorio({
     Object.entries(obj).map(([v, o]) => ({ valor: v, nome: typeof o === "string" ? o : o.rotulo }));
 
   return (
-    <div className="mb-6 flex flex-col gap-3">
+    <div className="mb-4 flex flex-col gap-2">
       {/* Período e métrica */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         {periodos.map((p, i) => (
           <Button
             key={p.rotulo}
@@ -107,7 +107,7 @@ export function FiltrosRelatorio({
           type="date"
           value={de}
           max={ate}
-          className="h-8 w-36 text-sm"
+          className="h-8 w-32 px-2 text-sm"
           aria-label="Data inicial"
           onChange={(e) => e.target.value && aplicar({ de: e.target.value })}
         />
@@ -116,7 +116,7 @@ export function FiltrosRelatorio({
           type="date"
           value={ate}
           min={de}
-          className="h-8 w-36 text-sm"
+          className="h-8 w-32 px-2 text-sm"
           aria-label="Data final"
           onChange={(e) => e.target.value && aplicar({ ate: e.target.value })}
         />
