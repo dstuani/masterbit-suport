@@ -6,36 +6,47 @@ import { Logo } from "@/components/layout/logo";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { Papel } from "@/lib/papeis";
+
+/** O botão principal do cabeçalho muda com o papel: cada um cria o que pode criar. */
+const CRIAR: Partial<Record<Papel, { href: string; rotulo: string }>> = {
+  owner: { href: "/atendimentos/novo", rotulo: "Novo atendimento" },
+  tecnico: { href: "/atendimentos/novo", rotulo: "Novo atendimento" },
+  solicitante: { href: "/meus-atendimentos/novo", rotulo: "Novo atendimento" },
+  agenda: { href: "/agenda/novo", rotulo: "Novo evento" },
+};
 
 export function Header({
   email,
-  podeEditar,
+  papel,
   solicitacoesNovas = 0,
 }: {
   email: string | null;
-  podeEditar: boolean;
+  papel: Papel | null;
   solicitacoesNovas?: number;
 }) {
+  const criar = papel ? CRIAR[papel] : undefined;
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-5">
       <div className="flex items-center gap-2 md:hidden">
-        <MobileNav solicitacoesNovas={solicitacoesNovas} />
+        <MobileNav papel={papel} solicitacoesNovas={solicitacoesNovas} />
         <Logo />
       </div>
       <div className="hidden flex-1 md:block" />
 
       <div className="flex items-center gap-3">
-        {podeEditar ? (
+        {criar ? (
           <Button asChild size="sm">
-            <Link href="/atendimentos/novo">
+            <Link href={criar.href}>
               <Plus />
-              <span className="hidden sm:inline">Novo atendimento</span>
+              <span className="hidden sm:inline">{criar.rotulo}</span>
               <span className="sm:hidden">Novo</span>
             </Link>
           </Button>
-        ) : (
+        ) : papel === "visualizador" ? (
           <Badge>Somente consulta</Badge>
-        )}
+        ) : null}
         <span className="hidden text-sm text-muted-foreground sm:inline">
           {email ?? "modo de visualização"}
         </span>

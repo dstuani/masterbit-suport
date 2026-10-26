@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TIPOS_EVENTO } from "@/lib/constants";
-import { podeEscreverAgora } from "@/lib/auth";
+import { podeEscreverNaAgendaAgora } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
 import { listarEventos, type EventoComContexto } from "@/lib/services/agenda";
 import { formatarDataHora, cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ export default async function AgendaPage({
       ate: filtrosAte,
       status: vista === "proximos" ? "pendentes" : undefined,
     }),
-    podeEscreverAgora(),
+    podeEscreverNaAgendaAgora(),
   ]);
 
   // "Próximos" olha para frente (o mais cedo primeiro); "Este mês" e "Todos" são

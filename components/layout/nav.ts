@@ -12,6 +12,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import type { Papel } from "@/lib/papeis";
+
 export type ItemNav = {
   titulo: string;
   href: string;
@@ -48,3 +50,21 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
     itens: [{ titulo: "Configurações", href: "/configuracoes", icone: Settings }],
   },
 ];
+
+/** Menu de cada papel. Os restritos veem só o que podem abrir (veja rotaPermitida em lib/papeis.ts). */
+export function navegacaoDoPapel(papel: Papel | null): { secao: string; itens: ItemNav[] }[] {
+  const configuracoes = { secao: "Conta", itens: [{ titulo: "Configurações", href: "/configuracoes", icone: Settings }] };
+  if (papel === "solicitante") {
+    return [
+      {
+        secao: "Atendimento",
+        itens: [{ titulo: "Meus atendimentos", href: "/meus-atendimentos", icone: ClipboardList }],
+      },
+      configuracoes,
+    ];
+  }
+  if (papel === "agenda") {
+    return [{ secao: "Operação", itens: [{ titulo: "Agenda", href: "/agenda", icone: CalendarDays }] }, configuracoes];
+  }
+  return NAVEGACAO;
+}

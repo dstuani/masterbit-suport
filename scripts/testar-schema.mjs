@@ -479,6 +479,229 @@ async function main() {
   );
   await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
 
+  // ── Papéis restritos: solicitante e agenda ──
+  // Aqui o RLS é testado de verdade: as consultas rodam com um papel sem
+  // superusuário (SET ROLE), então as policies valem como no Supabase.
+  const { rows: outroCli } = await db.query(
+    `insert into clientes (org_id, razao_social) values ($1, 'Mercado Sol') returning id`,
+    [orgId],
+  );
+  const outroClienteId = outroCli[0].id;
+  const { rows: atendOutro } = await db.query(
+    `insert into atendimentos (org_id, cliente_id, titulo, created_by)
+     values ($1, $2, 'DO OWNER', $3) returning id`,
+    [orgId, clienteId, userId],
+  );
+
+  const { rows: novoSol } = await db.query(
+    `insert into auth.users (email) values ('funcionario@padaria.com.br') returning id`,
+  );
+  const solId = novoSol[0].id;
+  await deveRejeitar(
+    db,
+    "solicitante precisa ter um cliente",
+    `update profiles set role = 'solicitante', ativo = true where id = '${solId}'`,
+    "profiles_solicitante_tem_cliente",
+  );
+  await db.exec(
+    `update profiles set role = 'solicitante', cliente_id = '${clienteId}', ativo = true where id = '${solId}'`,
+  );
+
+  const { rows: novoAg } = await db.query(
+    `insert into auth.users (email) values ('secretaria@exemplo.com.br') returning id`,
+  );
+  const agId = novoAg[0].id;
+  await db.exec(`update profiles set role = 'agenda', ativo = true where id = '${agId}'`);
+
+  await db.exec(`update auth.sessao_teste set usuario = '${solId}'`);
+  const { rows: idSol } = await db.query(
+    `select org_atual() as org, org_restrita() as restrita, cliente_do_solicitante() as cliente,
+            pode_escrever() as escreve`,
+  );
+  verificar(
+    "solicitante fica fora das policies gerais e preso ao cliente dele",
+    idSol[0].org === null && idSol[0].restrita === orgId && idSol[0].cliente === clienteId &&
+      idSol[0].escreve === false,
+    JSON.stringify(idSol[0]),
+  );
+  await deveRejeitar(
+    db,
+    "solicitante não troca o próprio cliente",
+    `update profiles set cliente_id = '${outroClienteId}' where id = '${solId}'`,
+    "Somente o owner",
+  );
+
+  // Papel sem superusuário para o RLS valer. Fica dono de nada: só recebe acesso.
+  await db.exec(`
+    do $$ begin
+      if not exists (select 1 from pg_roles where rolname = 'usuario_app') then
+        create role usuario_app nologin;
+      end if;
+    end $$;
+    grant usage on schema public, auth to usuario_app;
+    grant select, insert, update, delete on all tables in schema public to usuario_app;
+    grant select on all tables in schema auth to usuario_app;
+    grant usage on all sequences in schema public to usuario_app;
+  `);
+  const comoUsuario = async (usuario, sql, params = []) => {
+    await db.exec(`update auth.sessao_teste set usuario = '${usuario}'`);
+    await db.exec("set role usuario_app");
+    try {
+      return await db.query(sql, params);
+    } finally {
+      await db.exec("reset role");
+    }
+  };
+  const rejeitaComo = async (usuario, nome, sql, trecho) => {
+    await db.exec(`update auth.sessao_teste set usuario = '${usuario}'`);
+    await db.exec("set role usuario_app");
+    try {
+      await db.exec(sql);
+      verificar(nome, false, "o banco aceitou o que deveria recusar");
+    } catch (erro) {
+      verificar(nome, erro.message.includes(trecho), `mensagem inesperada: ${erro.message}`);
+    } finally {
+      await db.exec("reset role");
+    }
+  };
+
+  const { rows: abertoSol } = await comoUsuario(
+    solId,
+    `insert into atendimentos (org_id, cliente_id, titulo, created_by, responsavel_id)
+     values ($1, $2, 'IMPRESSORA PARADA', $3, null) returning id`,
+    [orgId, clienteId, solId],
+  );
+  verificar("solicitante abre atendimento no cliente dele", abertoSol.length === 1);
+  const atendSolId = abertoSol[0].id;
+
+  await rejeitaComo(
+    solId,
+    "solicitante não abre atendimento para outro cliente",
+    `insert into atendimentos (org_id, cliente_id, titulo, created_by)
+     values ('${orgId}', '${outroClienteId}', 'OUTRO', '${solId}')`,
+    "row-level security",
+  );
+  await rejeitaComo(
+    solId,
+    "solicitante não abre atendimento já atribuído a alguém",
+    `insert into atendimentos (org_id, cliente_id, titulo, created_by, responsavel_id)
+     values ('${orgId}', '${clienteId}', 'ATRIBUIDO', '${solId}', '${userId}')`,
+    "row-level security",
+  );
+
+  const { rows: vistosSol } = await comoUsuario(solId, `select id from atendimentos`);
+  verificar(
+    "solicitante só enxerga os atendimentos que ele abriu",
+    vistosSol.length === 1 && vistosSol[0].id === atendSolId,
+    `viu ${vistosSol.length}`,
+  );
+  const { rows: listaSol } = await comoUsuario(solId, `select cliente_nome from atendimentos_lista`);
+  verificar(
+    "na lista do solicitante aparece o nome do cliente dele",
+    listaSol.length === 1 && listaSol[0].cliente_nome === "Padaria Estrela Ltda",
+  );
+  const { rows: clientesSol } = await comoUsuario(solId, `select id from clientes`);
+  verificar("solicitante enxerga só o próprio cliente", clientesSol.length === 1);
+  const { rows: equipSol } = await comoUsuario(
+    solId,
+    `select (select count(*)::int from equipamentos) + (select count(*)::int from solicitacoes)
+          + (select count(*)::int from pendencias) + (select count(*)::int from agenda_eventos) as total`,
+  );
+  verificar("solicitante não enxerga equipamentos, solicitações, pendências nem agenda", equipSol[0].total === 0);
+  const { rows: perfisSol } = await comoUsuario(solId, `select id from profiles`);
+  verificar("solicitante enxerga só o próprio perfil", perfisSol.length === 1 && perfisSol[0].id === solId);
+
+  const { rows: timelineSol } = await comoUsuario(
+    solId,
+    `select tipo from atendimento_interacoes where atendimento_id = $1`,
+    [atendSolId],
+  );
+  verificar("solicitante vê a timeline do atendimento dele", timelineSol.length === 1);
+  await comoUsuario(
+    solId,
+    `insert into atendimento_interacoes (org_id, atendimento_id, autor_id, tipo, conteudo)
+     values ($1, $2, $3, 'nota', 'Continua sem imprimir')`,
+    [orgId, atendSolId, solId],
+  );
+  verificar("solicitante escreve mensagem no atendimento dele", true);
+  await rejeitaComo(
+    solId,
+    "solicitante não lança tempo gasto",
+    `insert into atendimento_interacoes (org_id, atendimento_id, autor_id, tipo, conteudo, tempo_gasto_minutos)
+     values ('${orgId}', '${atendSolId}', '${solId}', 'nota', 'x', 30)`,
+    "row-level security",
+  );
+  await rejeitaComo(
+    solId,
+    "solicitante não escreve em atendimento de outra pessoa",
+    `insert into atendimento_interacoes (org_id, atendimento_id, autor_id, tipo, conteudo)
+     values ('${orgId}', '${atendOutro[0].id}', '${solId}', 'nota', 'x')`,
+    "row-level security",
+  );
+  const { rows: mudou } = await comoUsuario(
+    solId,
+    `update atendimentos set status = 'resolvido', solucao = 'x' where id = $1 returning id`,
+    [atendSolId],
+  );
+  verificar("solicitante não muda a situação do atendimento", mudou.length === 0);
+
+  // Agenda
+  const { rows: idAg } = await comoUsuario(
+    agId,
+    `select org_atual() as org, org_restrita() as restrita, pode_escrever() as escreve`,
+  );
+  verificar(
+    "usuário da agenda fica fora das policies gerais",
+    idAg[0].org === null && idAg[0].restrita === orgId && idAg[0].escreve === false,
+  );
+  const { rows: eventoAg } = await comoUsuario(
+    agId,
+    `insert into agenda_eventos (org_id, titulo, inicio, cliente_id, created_by)
+     values ($1, 'Visita na padaria', now() + interval '1 day', $2, $3) returning id`,
+    [orgId, clienteId, agId],
+  );
+  verificar("usuário da agenda cria evento", eventoAg.length === 1);
+  const eventoAgId = eventoAg[0].id;
+  const { rows: vistosAg } = await comoUsuario(
+    agId,
+    `select (select count(*)::int from agenda_eventos) as eventos,
+            (select count(*)::int from clientes) as clientes,
+            (select count(*)::int from atendimentos) as atendimentos`,
+  );
+  verificar(
+    "usuário da agenda vê eventos e clientes, mas nenhum atendimento",
+    vistosAg[0].eventos >= 1 && vistosAg[0].clientes === 2 && vistosAg[0].atendimentos === 0,
+    JSON.stringify(vistosAg[0]),
+  );
+  const { rows: cancelou } = await comoUsuario(
+    agId,
+    `update agenda_eventos set status = 'cancelado' where id = $1 returning id`,
+    [eventoAgId],
+  ).catch(() => ({ rows: [] }));
+  verificar("usuário da agenda não cancela evento", cancelou.length === 0);
+  const { rows: realizou } = await comoUsuario(
+    agId,
+    `update agenda_eventos set status = 'realizado' where id = $1 returning id`,
+    [eventoAgId],
+  ).catch(() => ({ rows: [] }));
+  verificar("usuário da agenda não marca evento como realizado", realizou.length === 0);
+  const { rows: apagou } = await comoUsuario(
+    agId,
+    `delete from agenda_eventos where id = $1 returning id`,
+    [eventoAgId],
+  );
+  verificar("usuário da agenda não exclui evento", apagou.length === 0);
+  const { rows: remarcou } = await comoUsuario(
+    agId,
+    `update agenda_eventos set status = 'remarcado' where id = $1 returning id`,
+    [eventoAgId],
+  );
+  verificar("usuário da agenda remarca evento", remarcou.length === 1);
+
+  await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
+  // Os dois saem de cena para não mexer nas contagens dos testes seguintes.
+  await db.exec(`update profiles set ativo = false where id in ('${solId}', '${agId}')`);
+
   // ── Anexos ──
   const { rows: alvo } = await db.query(`select id from atendimentos limit 1`);
   const alvoId = alvo[0].id;
@@ -527,11 +750,11 @@ async function main() {
   );
 
   const { rows: antesCascata } = await db.query(
-    `select count(*)::int as total from atendimento_interacoes`,
+    `select count(*)::int as total from atendimento_interacoes where atendimento_id = '${atendimentoId}'`,
   );
   await db.exec(`delete from atendimentos where id = '${atendimentoId}'`);
   const { rows: depoisCascata } = await db.query(
-    `select count(*)::int as total from atendimento_interacoes`,
+    `select count(*)::int as total from atendimento_interacoes where atendimento_id = '${atendimentoId}'`,
   );
   verificar(
     "timeline é apagada junto com o atendimento",

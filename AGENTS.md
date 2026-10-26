@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e as funções do RLS (80 verificações) |
+| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (103 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -143,6 +143,7 @@ app/
 │   ├── dashboard/
 │   ├── solicitacoes/       caixa de entrada do formulário da landing (triagem)
 │   ├── atendimentos/       lista, novo, [id] (detalhe) — o núcleo do sistema
+│   ├── meus-atendimentos/  área do papel solicitante (funcionário de cliente): lista, novo, [id] com mensagens
 │   ├── clientes/           lista, novo, [id] (abas, inclusive Equipamentos com a coleta), [id]/editar, [id]/importar
 │   ├── equipamentos/       parque de máquinas: lista, novo (manual), [id] (ficha + manutenções), [id]/editar,
 │   │                       relatorio (manutenções, trocas de peça, situação do parque, CSV)
@@ -160,7 +161,8 @@ components/
 └── ui/       button, card, badge, input, select, textarea, label, campo
 
 lib/
-├── auth.ts          exigirUsuario / exigirPerfil / exigirPermissaoDeEscrita
+├── auth.ts          exigirUsuario / exigirPerfil / exigirPermissaoDeEscrita / exigirEscritaNaAgenda / exigirSolicitante
+├── papeis.ts        rótulos dos papéis, rotas de cada papel restrito (rotaPermitida) e tela inicial
 ├── env.ts           leitura das variáveis, supabaseConfigurado, exigirServiceRole
 ├── constants.ts     rótulos e cores dos enums do banco (espelho de base.sql)
 ├── forms.ts         EstadoFormulario, erroDeValidacao, mensagemDoErro
@@ -222,7 +224,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-24 tabelas, 1 view, RLS em todas. Toda tabela de negócio tem `org_id`.
+24 tabelas, 1 view, RLS em todas. Papéis: owner, tecnico, visualizador, solicitante, agenda. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -258,7 +260,8 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
 ### Regras que estão no banco (não na aplicação)
 
 - **Isolamento por organização:** `org_atual()`, `papel_atual()` e `pode_escrever()`
-  são usadas por todas as policies. Leitura: mesma organização. Escrita: `owner` ou
+  são usadas por todas as policies. Papéis restritos (`solicitante`, `agenda`) têm
+  `org_atual()` NULL e usam `org_restrita()` nas policies próprias (veja abaixo). Leitura: mesma organização. Escrita: `owner` ou
   `tecnico`. `visualizador` só lê. Usuário com `ativo = false` não lê nem escreve nada.
 - **Timeline imutável:** `atendimento_interacoes` e `consultoria_comentarios` só têm
   policy de SELECT e INSERT. Correção entra como nova interação.
@@ -284,6 +287,15 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
   ao papel `anon`: valida tamanhos e e-mail, ignora quem preenche o campo-armadilha `p_site`,
   freia 3 envios por e-mail e 30 no total por hora, e usa a primeira organização. O
   conteúdo enviado nunca é editável; só o status muda (e o trigger registra quem tratou).
+
+- **Papéis restritos (migrations `20261026120000` e `20261026120100`):** `solicitante` é
+  funcionário de um cliente (`profiles.cliente_id`, obrigatório para ele): abre atendimento só
+  nesse cliente, sempre `aberto` e sem responsável, vê só os que ele abriu (`created_by`), lê a
+  timeline deles e escreve mensagens (`nota`, sem tempo nem anexo). `agenda` vê todos os eventos e
+  os clientes, cria e remarca; não cancela, não realiza, não exclui. Nenhum dos dois edita o próprio
+  perfil; `cliente_id` só o owner muda (trigger `proteger_profile`). No app, o proxy grava o
+  caminho no cabeçalho `x-caminho` e `app/(app)/layout.tsx` + `template.tsx` desviam o papel
+  restrito que abre rota fora da dele (`lib/papeis.ts`); o menu e o botão do cabeçalho mudam por papel.
 
 - **Coleta de equipamentos:** o agente chama a função `registrar_coleta(chave, dados)`
   (SECURITY DEFINER, liberada a `anon`). A chave decide cliente e organização; o banco só
@@ -513,3 +525,10 @@ português, curtos.
     (página que recebe o filtro), `href` por item e `ordenar={false}` para faixas com ordem
     própria. A parte visual do relatório fica em `relatorio/painel.tsx`, separada da busca,
     para poder ser vista com dados de exemplo.
+23. **Papéis restritos — não desfazer.** A segurança deles vem de `org_atual()` devolver NULL
+    para `solicitante` e `agenda`: toda policy antiga (e as futuras) começa por
+    `org_id = org_atual()` e fica fechada para eles sem esforço. Ao redefinir `org_atual()`,
+    mantenha o filtro `role in ('owner','tecnico','visualizador')`. Policy nova que deva valer
+    para eles usa `org_restrita()`. `acumular_tempo_interacao` virou SECURITY DEFINER para a
+    mensagem do solicitante subir o atendimento na lista. O desvio de rota (`x-caminho`) é só
+    conveniência; os dados são barrados pelo RLS (testado com `SET ROLE` em `db:test`).

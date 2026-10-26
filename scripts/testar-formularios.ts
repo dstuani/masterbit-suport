@@ -10,6 +10,8 @@
  */
 import { atendimentoSchema, conclusaoSchema, interacaoSchema, mudancaStatusSchema } from "../lib/schemas/atendimentos";
 import { clienteSchema, contatoSchema, filialSchema } from "../lib/schemas/cadastros";
+import { criarUsuarioSchema } from "../lib/schemas/equipe";
+import { mensagemSchema, pedidoSchema } from "../lib/schemas/meus-atendimentos";
 
 const UUID = "3f1e6b6a-2c4d-4f8a-9a1b-7c2d5e8f0a11";
 
@@ -187,6 +189,47 @@ recusa("contato com e-mail inválido", contatoSchema, {
   principal: false,
   ativo: true,
 });
+
+// Equipe: o select de cliente só existe para o solicitante (nos outros papéis nem é enviado).
+const tecnico = aceita("usuário técnico sem o campo cliente", criarUsuarioSchema, {
+  nome: "Ana",
+  email: "ana@exemplo.com.br",
+  role: "tecnico",
+});
+verificar(
+  "técnico não fica ligado a cliente",
+  tecnico.success && (tecnico as unknown as { data: { cliente_id: unknown } }).data.cliente_id === null,
+);
+recusa("solicitante sem cliente", criarUsuarioSchema, {
+  nome: "Bruno",
+  email: "bruno@padaria.com.br",
+  role: "solicitante",
+  cliente_id: "",
+});
+aceita("solicitante com cliente", criarUsuarioSchema, {
+  nome: "Bruno",
+  email: "bruno@padaria.com.br",
+  role: "solicitante",
+  cliente_id: UUID,
+});
+aceita("usuário só da agenda", criarUsuarioSchema, {
+  nome: "Carla",
+  email: "carla@exemplo.com.br",
+  role: "agenda",
+});
+recusa("ninguém nasce owner pelo formulário", criarUsuarioSchema, {
+  nome: "Dora",
+  email: "dora@exemplo.com.br",
+  role: "owner",
+});
+
+// Meus atendimentos (funcionário do cliente)
+aceita("pedido com assunto e descrição", pedidoSchema, {
+  titulo: "Impressora parada",
+  descricao: "A impressora do caixa não imprime desde ontem.",
+});
+recusa("pedido sem descrição", pedidoSchema, { titulo: "Impressora parada", descricao: "" });
+recusa("mensagem vazia", mensagemSchema, { atendimento_id: UUID, conteudo: "   " });
 
 console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);
 if (falhas.length > 0) process.exit(1);

@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
-import { exigirEscritaNaPagina } from "@/lib/auth";
+import { podeEscreverNaAgendaAgora } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { supabaseConfigurado } from "@/lib/env";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { FormularioEvento } from "./formulario";
@@ -13,7 +14,7 @@ export default async function NovoEventoPage({
   searchParams: Promise<{ atendimento?: string; pendencia?: string }>;
 }) {
   const { atendimento: atendimentoId, pendencia: pendenciaId } = await searchParams;
-  await exigirEscritaNaPagina("/agenda");
+  if (!(await podeEscreverNaAgendaAgora())) redirect("/agenda");
 
   if (!supabaseConfigurado) {
     return (

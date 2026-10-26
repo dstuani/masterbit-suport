@@ -1,4 +1,4 @@
-import { exigirPermissaoDeEscrita } from "@/lib/auth";
+import { exigirEscritaNaAgenda, exigirPermissaoDeEscrita } from "@/lib/auth";
 import { traduzirErro } from "@/lib/services/erros";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Inserir, Tabelas } from "@/lib/types/database";
@@ -61,12 +61,14 @@ export async function obterEvento(id: string): Promise<EventoComContexto | null>
 }
 
 export async function criarEvento(dados: DadosEvento): Promise<Evento> {
-  const perfil = await exigirPermissaoDeEscrita();
+  const perfil = await exigirEscritaNaAgenda();
+  // O papel "agenda" não enxerga atendimentos nem pendências: não vincula nenhum.
+  const soAgenda = perfil.role === "agenda";
   const supabase = await criarClienteServidor();
 
   // Se veio atendimento_id sem cliente_id, herda o cliente do atendimento.
   let clienteId = dados.cliente_id;
-  if (!clienteId && dados.atendimento_id) {
+  if (!clienteId && dados.atendimento_id && !soAgenda) {
     const { data } = await supabase
       .from("atendimentos")
       .select("cliente_id")
@@ -81,8 +83,8 @@ export async function criarEvento(dados: DadosEvento): Promise<Evento> {
     descricao: dados.descricao,
     tipo: dados.tipo,
     cliente_id: clienteId,
-    atendimento_id: dados.atendimento_id,
-    pendencia_id: dados.pendencia_id,
+    atendimento_id: soAgenda ? null : dados.atendimento_id,
+    pendencia_id: soAgenda ? null : dados.pendencia_id,
     responsavel_id: perfil.id,
     inicio: dados.inicio,
     fim: dados.fim ?? null,
@@ -132,7 +134,7 @@ export async function realizarEvento(dados: DadosRealizarEvento): Promise<void> 
 }
 
 export async function remarcarEvento(dados: DadosRemarcarEvento): Promise<void> {
-  await exigirPermissaoDeEscrita();
+  const perfil = await exigirEscritaNaAgenda();
   const supabase = await criarClienteServidor();
 
   const { error } = await supabase
@@ -153,8 +155,6 @@ export async function remarcarEvento(dados: DadosRemarcarEvento): Promise<void> 
     .maybeSingle();
 
   if (!original) return;
-
-  const perfil = await exigirPermissaoDeEscrita();
 
   await supabase.from("agenda_eventos").insert({
     org_id: original.org_id,

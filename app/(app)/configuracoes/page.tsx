@@ -5,6 +5,8 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { obterPerfil, podeEscrever } from "@/lib/auth";
+import { ehRestrito, ROTULOS_PAPEL } from "@/lib/papeis";
+import { opcoesDoCadastro } from "@/lib/services/equipamentos";
 import { serviceRoleConfigurado, serviceRolePreenchida, supabaseConfigurado } from "@/lib/env";
 import { listarCategorias, listarSistemas } from "@/lib/services/catalogo";
 import { listarAuditoria, listarEquipe, TABELAS_AUDITADAS } from "@/lib/services/equipe";
@@ -30,11 +32,6 @@ const ABAS = [
   { chave: "auditoria", rotulo: "Auditoria", soOwner: true },
 ] as const;
 
-const ROTULOS_PAPEL = {
-  owner: "Owner",
-  tecnico: "Técnico",
-  visualizador: "Visualizador",
-} as const;
 
 const ACOES_AUDITORIA = { INSERT: "Criou", UPDATE: "Alterou", DELETE: "Excluiu" } as const;
 
@@ -104,15 +101,19 @@ export default async function ConfiguracoesPage({
   const perfil = await obterPerfil();
   const ehOwner = perfil?.role === "owner";
   const podeEditar = perfil !== null && podeEscrever(perfil);
-  const abasVisiveis = ABAS.filter((a) => !a.soOwner || ehOwner);
-  const aba = abasVisiveis.some((a) => a.chave === abaParam) ? abaParam! : "sistemas";
+  // Papéis restritos (solicitante, agenda) só têm a própria conta: tema e senha.
+  const restrito = ehRestrito(perfil?.role);
+  const abasVisiveis = ABAS.filter((a) => (restrito ? a.chave === "conta" : !a.soOwner || ehOwner));
+  const aba = abasVisiveis.some((a) => a.chave === abaParam) ? abaParam! : abasVisiveis[0].chave;
 
-  const [sistemas, categorias, equipe, auditoria] = await Promise.all([
-    listarSistemas(true),
-    listarCategorias(),
+  const [sistemas, categorias, equipe, auditoria, cadastro] = await Promise.all([
+    restrito ? Promise.resolve([]) : listarSistemas(true),
+    restrito ? Promise.resolve([]) : listarCategorias(),
     aba === "equipe" && ehOwner ? listarEquipe() : Promise.resolve([]),
     aba === "auditoria" && ehOwner ? listarAuditoria({ tabela }, pagina) : Promise.resolve(null),
+    aba === "equipe" && ehOwner ? opcoesDoCadastro() : Promise.resolve({ clientes: [], filiais: [] }),
   ]);
+  const nomeDoCliente = new Map(cadastro.clientes.map((c) => [c.id, c.razao_social]));
 
   return (
     <>
@@ -288,7 +289,12 @@ export default async function ConfiguracoesPage({
               </p>
             </CardHeader>
             <CardContent>
-              <FormularioPerfil nome={perfil.nome} telefone={perfil.telefone} />
+              {/* O banco não deixa papel restrito editar o próprio perfil: quem ajusta é o owner. */}
+              {restrito ? (
+                <p className="text-sm">{perfil.nome}</p>
+              ) : (
+                <FormularioPerfil nome={perfil.nome} telefone={perfil.telefone} />
+              )}
             </CardContent>
           </Card>
 
@@ -326,6 +332,9 @@ export default async function ConfiguracoesPage({
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {ROTULOS_PAPEL[membro.role]}
+                        {membro.role === "solicitante" && membro.cliente_id ? (
+                          <span className="block text-xs">{nomeDoCliente.get(membro.cliente_id) ?? "Cliente inativo"}</span>
+                        ) : null}
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {formatarData(membro.created_at)}
@@ -357,7 +366,7 @@ export default async function ConfiguracoesPage({
                 </p>
               </CardHeader>
               <CardContent>
-                <FormularioNovoUsuario />
+                <FormularioNovoUsuario clientes={cadastro.clientes} />
               </CardContent>
             </Card>
           ) : (
@@ -383,7 +392,9 @@ export default async function ConfiguracoesPage({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Owner gerencia papéis; Visualizador só consulta. A organização sempre mantém ao menos
+            Owner gerencia papéis; Visualizador só consulta; Solicitante é funcionário de um cliente e
+            só abre e acompanha os próprios atendimentos; Só agenda vê, cria e remarca eventos, sem
+            cancelar nem excluir. A organização sempre mantém ao menos
             um owner ativo. Usuário criado fora desta tela (painel do Supabase ou
             autocadastro) chega inativo e só acessa depois de ativado aqui — se aparecer
             alguém que você não reconhece, deixe inativo.

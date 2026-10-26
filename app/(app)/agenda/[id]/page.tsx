@@ -6,7 +6,8 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TIPOS_EVENTO } from "@/lib/constants";
-import { podeEscreverAgora } from "@/lib/auth";
+import { obterPerfil, podeEscreverAgora } from "@/lib/auth";
+import { podeEscreverNaAgenda } from "@/lib/papeis";
 import { supabaseConfigurado } from "@/lib/env";
 import { obterEvento } from "@/lib/services/agenda";
 import { formatarDataHora, formatarRelativo } from "@/lib/utils";
@@ -35,12 +36,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
 
   if (!supabaseConfigurado) return <AvisoSupabase />;
 
-  const [evento, podeEditar] = await Promise.all([obterEvento(id), podeEscreverAgora()]);
+  const [evento, podeEditar, perfil] = await Promise.all([obterEvento(id), podeEscreverAgora(), obterPerfil()]);
   if (!evento) notFound();
 
-  // Sem permissão de escrita, o evento é só leitura: some realizar/remarcar/cancelar.
-  const pendente =
-    podeEditar && (evento.status === "agendado" || evento.status === "confirmado");
+  // Sem permissão de escrita, o evento é só leitura. O papel "agenda" só remarca:
+  // cancelar e realizar ficam com a equipe (o banco também recusa).
+  const emAberto = evento.status === "agendado" || evento.status === "confirmado";
+  const pendente = podeEditar && emAberto;
+  const podeRemarcar = podeEscreverNaAgenda(perfil?.role) && emAberto;
+  const soAgenda = perfil?.role === "agenda";
   const encerrado = evento.status === "realizado" || evento.status === "cancelado";
 
   return (
@@ -66,17 +70,21 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
           <h1 className="mt-1.5 text-xl font-semibold tracking-tight">{evento.titulo}</h1>
           {evento.clientes && (
             <p className="mt-1 text-sm text-muted-foreground">
-              <Link href={`/clientes/${evento.cliente_id}`} className="hover:underline">
-                {evento.clientes.razao_social}
-              </Link>
+              {soAgenda ? (
+                evento.clientes.razao_social
+              ) : (
+                <Link href={`/clientes/${evento.cliente_id}`} className="hover:underline">
+                  {evento.clientes.razao_social}
+                </Link>
+              )}
             </p>
           )}
         </div>
 
-        {pendente ? (
+        {podeRemarcar ? (
           <div className="flex flex-wrap gap-2">
             <PainelRemarcar id={id} />
-            <BotaoCancelarEvento id={id} />
+            {pendente ? <BotaoCancelarEvento id={id} /> : null}
           </div>
         ) : null}
       </div>

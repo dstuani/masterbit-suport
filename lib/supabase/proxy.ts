@@ -11,7 +11,14 @@ import type { Database } from "@/lib/types/database";
  * final, ou o refresh token se perde.
  */
 export async function atualizarSessao(request: NextRequest) {
-  let resposta = NextResponse.next({ request });
+  // O caminho vai junto para o layout desviar papéis restritos (layouts não recebem a
+  // URL). Sempre sobrescrito aqui, então o navegador não consegue forjar o valor.
+  const cabecalhos = () => {
+    const h = new Headers(request.headers);
+    h.set("x-caminho", request.nextUrl.pathname);
+    return h;
+  };
+  let resposta = NextResponse.next({ request: { headers: cabecalhos() } });
 
   const supabase = createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
@@ -22,7 +29,7 @@ export async function atualizarSessao(request: NextRequest) {
         for (const { name, value } of cookiesParaDefinir) {
           request.cookies.set(name, value);
         }
-        resposta = NextResponse.next({ request });
+        resposta = NextResponse.next({ request: { headers: cabecalhos() } });
         for (const { name, value, options } of cookiesParaDefinir) {
           resposta.cookies.set(name, value, options);
         }

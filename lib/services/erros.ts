@@ -31,6 +31,7 @@ const TRADUCOES: [string, string][] = [
   ["manutencoes_tipo_valido", "Tipo de manutenção inválido."],
   ["manutencoes_custo_valido", "Custo inválido."],
   ["manutencoes_pecas_tamanho", "O nome da peça deve ter até 200 caracteres."],
+  ["profiles_solicitante_tem_cliente", "Usuário solicitante precisa estar ligado a um cliente. Crie um usuário novo para isso."],
   ["violates foreign key constraint", "Existe registro dependente que impede esta operação."],
   ["row-level security", "Sem permissão para esta operação."],
 ];

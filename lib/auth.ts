@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { supabaseConfigurado } from "@/lib/env";
+import { inicioDoPapel, podeEscreverNaAgenda, rotaPermitida } from "@/lib/papeis";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Tabelas } from "@/lib/types/database";
 
@@ -104,4 +105,38 @@ export async function exigirPermissaoDeEscrita(): Promise<Perfil> {
   const perfil = await exigirPerfil();
   if (!podeEscrever(perfil)) throw new Error("Sem permissão para esta operação");
   return perfil;
+}
+
+/** Agenda: a equipe e o papel "agenda" criam e remarcam. Espelha as policies de agenda_eventos. */
+export async function podeEscreverNaAgendaAgora(): Promise<boolean> {
+  if (!supabaseConfigurado) return true;
+  const perfil = await obterPerfil();
+  return perfil !== null && perfil.ativo && podeEscreverNaAgenda(perfil.role);
+}
+
+export async function exigirEscritaNaAgenda(): Promise<Perfil> {
+  const perfil = await exigirPerfil();
+  if (!podeEscreverNaAgenda(perfil.role)) throw new Error("Sem permissão para esta operação");
+  return perfil;
+}
+
+/** Funcionário de cliente: só abre e acompanha os próprios atendimentos. */
+export async function exigirSolicitante(): Promise<Perfil & { cliente_id: string }> {
+  const perfil = await exigirPerfil();
+  if (perfil.role !== "solicitante" || !perfil.cliente_id) {
+    throw new Error("Sem permissão para esta operação");
+  }
+  return perfil as Perfil & { cliente_id: string };
+}
+
+/**
+ * Desvia o papel restrito que abriu uma rota fora da dele (digitando a URL ou por um
+ * link esquecido). É conveniência de tela: quem barra os dados é o RLS. O caminho
+ * vem do cabeçalho que o proxy grava; sem ele, conta como rota não permitida.
+ */
+export async function desviarSeForaDoPapel(caminho: string | null): Promise<void> {
+  if (!supabaseConfigurado) return;
+  const perfil = await obterPerfil();
+  if (!perfil) return;
+  if (!rotaPermitida(perfil.role, caminho ?? "")) redirect(inicioDoPapel(perfil.role));
 }

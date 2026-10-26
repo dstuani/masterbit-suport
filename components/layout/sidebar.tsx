@@ -4,10 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/layout/logo";
-import { NAVEGACAO } from "@/components/layout/nav";
+import { navegacaoDoPapel } from "@/components/layout/nav";
+import type { Papel } from "@/lib/papeis";
 import { cn } from "@/lib/utils";
 
-export function Sidebar({ solicitacoesNovas = 0 }: { solicitacoesNovas?: number }) {
+export function Sidebar({
+  papel,
+  solicitacoesNovas = 0,
+}: {
+  papel: Papel | null;
+  solicitacoesNovas?: number;
+}) {
   const pathname = usePathname();
 
   return (
@@ -17,7 +24,7 @@ export function Sidebar({ solicitacoesNovas = 0 }: { solicitacoesNovas?: number 
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3">
-        {NAVEGACAO.map((grupo) => (
+        {navegacaoDoPapel(papel).map((grupo) => (
           <div key={grupo.secao} className="mb-5">
             <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {grupo.secao}

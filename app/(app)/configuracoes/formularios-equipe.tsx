@@ -15,13 +15,9 @@ import { Campo } from "@/components/ui/campo";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { estadoInicial, type EstadoFormulario } from "@/lib/forms";
+import { DESCRICAO_PAPEL, ROTULOS_PAPEL, type Papel } from "@/lib/papeis";
 import type { EstadoCriarUsuario } from "@/lib/schemas/equipe";
 
-const ROTULOS_PAPEL = {
-  owner: "Owner",
-  tecnico: "Técnico",
-  visualizador: "Visualizador",
-} as const;
 
 function Erro({ texto }: { texto?: string | null }) {
   if (!texto) return null;
@@ -120,11 +116,12 @@ export function FormularioSenha() {
  * repassar por fora (WhatsApp, presencialmente), e a pessoa troca no primeiro
  * acesso em Configurações → Conta.
  */
-export function FormularioNovoUsuario() {
+export function FormularioNovoUsuario({ clientes }: { clientes: { id: string; razao_social: string }[] }) {
   const [estado, acao, pendente] = useActionState<EstadoCriarUsuario, FormData>(
     criarUsuarioAction,
     estadoInicial,
   );
+  const [papel, setPapel] = useState<Papel>("tecnico");
   const [copiado, setCopiado] = useState(false);
   const form = useRef<HTMLFormElement>(null);
 
@@ -145,6 +142,7 @@ export function FormularioNovoUsuario() {
       action={async (formData) => {
         await acao(formData);
         form.current?.reset();
+        setPapel("tecnico");
       }}
       className="grid gap-3 sm:grid-cols-4"
     >
@@ -158,14 +156,34 @@ export function FormularioNovoUsuario() {
         <Erro texto={estado.campos?.email} />
       </Campo>
 
-      <Campo id="novo_role" rotulo="Papel" dica="Owner se promove depois, na lista abaixo.">
-        <Select id="novo_role" name="role" defaultValue="tecnico">
-          <option value="tecnico">Técnico</option>
-          <option value="visualizador">Visualizador</option>
+      <Campo id="novo_role" rotulo="Papel" dica={DESCRICAO_PAPEL[papel]} className="sm:col-span-2">
+        <Select id="novo_role" name="role" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
+          {(["tecnico", "visualizador", "solicitante", "agenda"] as const).map((p) => (
+            <option key={p} value={p}>
+              {ROTULOS_PAPEL[p]}
+            </option>
+          ))}
         </Select>
       </Campo>
 
-      <div className="flex items-end sm:col-span-3">
+      {/* Só o solicitante fica preso a um cliente; nos outros papéis o campo nem é enviado. */}
+      {papel === "solicitante" ? (
+        <Campo id="novo_cliente" rotulo="Cliente" obrigatorio dica="Ele só abre e vê atendimentos deste cliente." className="sm:col-span-2">
+          <Select id="novo_cliente" name="cliente_id" defaultValue="" required>
+            <option value="" disabled>
+              Escolha o cliente
+            </option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.razao_social}
+              </option>
+            ))}
+          </Select>
+          <Erro texto={estado.campos?.cliente_id} />
+        </Campo>
+      ) : null}
+
+      <div className="flex items-end sm:col-span-4">
         <div className="flex items-center gap-3">
           <Button type="submit" size="sm" disabled={pendente}>
             {pendente ? "Criando…" : "Criar usuário"}
@@ -210,7 +228,7 @@ export function ControlesDoMembro({
   ehVoce,
 }: {
   id: string;
-  role: keyof typeof ROTULOS_PAPEL;
+  role: Papel;
   ativo: boolean;
   ehVoce: boolean;
 }) {
@@ -233,15 +251,18 @@ export function ControlesDoMembro({
             name="role"
             defaultValue={role}
             aria-label="Papel"
-            className="h-8 w-36"
+            className="h-8 w-44"
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             disabled={pendentePapel}
           >
-            {Object.entries(ROTULOS_PAPEL).map(([chave, rotulo]) => (
-              <option key={chave} value={chave}>
-                {rotulo}
-              </option>
-            ))}
+            {/* Virar solicitante exige um cliente: isso só se escolhe ao criar o usuário. */}
+            {(Object.entries(ROTULOS_PAPEL) as [Papel, string][])
+              .filter(([chave]) => chave !== "solicitante" || role === "solicitante")
+              .map(([chave, rotulo]) => (
+                <option key={chave} value={chave}>
+                  {rotulo}
+                </option>
+              ))}
           </Select>
         </form>
 

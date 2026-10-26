@@ -15,7 +15,7 @@ import type { Database } from "@/lib/types/database";
 
 export type MembroEquipe = Pick<
   Perfil,
-  "id" | "nome" | "email" | "telefone" | "role" | "ativo" | "created_at"
+  "id" | "nome" | "email" | "telefone" | "role" | "ativo" | "created_at" | "cliente_id"
 >;
 
 export type RegistroAuditoria = Database["public"]["Tables"]["audit_logs"]["Row"] & {
@@ -44,7 +44,7 @@ export async function listarEquipe(): Promise<MembroEquipe[]> {
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, nome, email, telefone, role, ativo, created_at")
+    .select("id, nome, email, telefone, role, ativo, created_at, cliente_id")
     .order("ativo", { ascending: false })
     .order("nome");
 
@@ -108,7 +108,7 @@ export async function criarUsuario(dados: DadosCriarUsuario): Promise<UsuarioCri
   const supabase = await criarClienteServidor();
   const { error: erroAtivacao } = await supabase
     .from("profiles")
-    .update({ role: dados.role, ativo: true })
+    .update({ role: dados.role, cliente_id: dados.cliente_id, ativo: true })
     .eq("id", data.user.id);
 
   if (erroAtivacao) {
@@ -188,7 +188,7 @@ export async function atribuirAtendimento(dados: DadosAtribuicao): Promise<void>
     .eq("id", dados.responsavel_id)
     .maybeSingle();
 
-  if (!destino || !destino.ativo || destino.role === "visualizador") {
+  if (!destino || !destino.ativo || (destino.role !== "owner" && destino.role !== "tecnico")) {
     throw new Error("Este usuário não pode receber atendimentos");
   }
 

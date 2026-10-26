@@ -8,7 +8,7 @@ const textoOpcional = z
   .optional()
   .transform((valor) => (valor && valor.length > 0 ? valor : null));
 
-export const ROLES = ["owner", "tecnico", "visualizador"] as const;
+export const ROLES = ["owner", "tecnico", "visualizador", "solicitante", "agenda"] as const;
 
 export const perfilSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome"),
@@ -45,13 +45,26 @@ export const atribuicaoSchema = z.object({
  * deliberada à parte, no controle que já existe na lista de usuários — não algo
  * que se escolha de passagem ao preencher um formulário de cadastro.
  */
-export const ROLES_PARA_NOVO_USUARIO = ["tecnico", "visualizador"] as const;
+export const ROLES_PARA_NOVO_USUARIO = ["tecnico", "visualizador", "solicitante", "agenda"] as const;
 
-export const criarUsuarioSchema = z.object({
-  nome: z.string().trim().min(2, "Informe o nome"),
-  email: z.email("E-mail inválido"),
-  role: z.enum(ROLES_PARA_NOVO_USUARIO, "Papel inválido"),
-});
+export const criarUsuarioSchema = z
+  .object({
+    nome: z.string().trim().min(2, "Informe o nome"),
+    email: z.email("E-mail inválido"),
+    role: z.enum(ROLES_PARA_NOVO_USUARIO, "Papel inválido"),
+    // O select do cliente só é enviado para o solicitante.
+    cliente_id: z
+      .string()
+      .optional()
+      .transform((v) => (v && v.length > 0 ? v : null))
+      .pipe(z.uuid("Cliente inválido").nullable()),
+  })
+  .superRefine((dados, ctx) => {
+    if (dados.role === "solicitante" && !dados.cliente_id) {
+      ctx.addIssue({ code: "custom", path: ["cliente_id"], message: "Escolha o cliente deste usuário" });
+    }
+  })
+  .transform((dados) => ({ ...dados, cliente_id: dados.role === "solicitante" ? dados.cliente_id : null }));
 
 export type DadosPerfil = z.infer<typeof perfilSchema>;
 export type DadosPapel = z.infer<typeof papelSchema>;

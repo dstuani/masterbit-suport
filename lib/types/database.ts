@@ -1507,10 +1507,11 @@ export type Database = {
           email: string;
           telefone: string | null;
           avatar_url: string | null;
-          role: "owner" | "tecnico" | "visualizador";
+          role: "owner" | "tecnico" | "visualizador" | "solicitante" | "agenda";
           ativo: boolean;
           created_at: string;
           updated_at: string;
+          cliente_id: string | null;
         };
         Insert: {
           id: string;
@@ -1519,10 +1520,11 @@ export type Database = {
           email: string;
           telefone?: string | null;
           avatar_url?: string | null;
-          role?: "owner" | "tecnico" | "visualizador";
+          role?: "owner" | "tecnico" | "visualizador" | "solicitante" | "agenda";
           ativo?: boolean;
           created_at?: string;
           updated_at?: string;
+          cliente_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1531,12 +1533,20 @@ export type Database = {
           email?: string;
           telefone?: string | null;
           avatar_url?: string | null;
-          role?: "owner" | "tecnico" | "visualizador";
+          role?: "owner" | "tecnico" | "visualizador" | "solicitante" | "agenda";
           ativo?: boolean;
           created_at?: string;
           updated_at?: string;
+          cliente_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "profiles_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "profiles_id_fkey";
             columns: ["id"];
@@ -1754,7 +1764,7 @@ export type Database = {
       origem_equipamento: "agente" | "manual";
       prioridade: "baixa" | "media" | "alta" | "urgente";
       responsavel_pendencia: "eu" | "cliente" | "terceiro";
-      role_usuario: "owner" | "tecnico" | "visualizador";
+      role_usuario: "owner" | "tecnico" | "visualizador" | "solicitante" | "agenda";
       status_atendimento: "aberto" | "em_andamento" | "aguardando_cliente" | "aguardando_terceiro" | "agendado" | "resolvido" | "cancelado";
       status_cliente: "ativo" | "inativo" | "prospect";
       status_evento: "agendado" | "confirmado" | "realizado" | "cancelado" | "remarcado";
