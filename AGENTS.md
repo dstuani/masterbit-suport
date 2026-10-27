@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (103 verificações) |
+| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (104 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -266,7 +266,8 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
 - **Timeline imutável:** `atendimento_interacoes` e `consultoria_comentarios` só têm
   policy de SELECT e INSERT. Correção entra como nova interação.
 - **Triggers do atendimento:** número `AT-AAAA-NNNNN` automático; interação "Atendimento
-  aberto" na criação; interação de mudança de status; `finalizado_em` preenchido ao
+  aberto" na criação; interação de status só ao encerrar (resolvido/cancelado) ou reabrir — as
+  mudanças do meio não geram linha (migration `20261027120000`); `finalizado_em` preenchido ao
   resolver/cancelar e limpo ao reabrir; tempo das interações somado no atendimento.
 - **Novo usuário:** trigger em `auth.users` cria o `profile` (primeiro = owner ativo;
   demais = tecnico **inativo**, até o owner ativar) e semeia 7 categorias e 28

@@ -202,10 +202,8 @@ async function main() {
     [atendimentoId],
   );
   verificar(
-    "mudança de status vira interação automática",
-    mudanca.length === 1 &&
-      mudanca[0].status_anterior === "aberto" &&
-      mudanca[0].status_novo === "aguardando_cliente",
+    "mudança do meio (aguardando) não ganha linha na timeline",
+    mudanca.length === 0,
     `veio ${JSON.stringify(mudanca)}`,
   );
 
@@ -226,6 +224,16 @@ async function main() {
   const { rows: resolvido } = await db.query(
     `select status, finalizado_em from atendimentos where id = $1`,
     [atendimentoId],
+  );
+  const { rows: fim } = await db.query(
+    `select status_anterior, status_novo from atendimento_interacoes
+      where atendimento_id = $1 and tipo = 'mudanca_status' order by created_at`,
+    [atendimentoId],
+  );
+  verificar(
+    "o fim (resolvido) ganha a linha de status",
+    fim.length === 1 && fim[0].status_anterior === "aguardando_cliente" && fim[0].status_novo === "resolvido",
+    `veio ${JSON.stringify(fim)}`,
   );
   verificar("resolve quando há solução", resolvido[0].status === "resolvido");
   verificar("finalizado_em é preenchido sozinho ao resolver", resolvido[0].finalizado_em !== null);
