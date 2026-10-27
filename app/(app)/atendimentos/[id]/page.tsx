@@ -30,6 +30,7 @@ import {
   formatarRelativo,
   formatarTamanho,
 } from "@/lib/utils";
+import { NotaEditavel } from "./nota-editavel";
 import { CaixaDeInteracao, Conclusao, TrocaDeStatus } from "./acoes";
 import { EnviarAnexos, RemoverAnexo } from "./anexos";
 import { AtribuirResponsavel } from "./atribuir";
@@ -139,6 +140,7 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
                   key={interacao.id}
                   interacao={interacao}
                   ultimo={indice === interacoes.length - 1}
+                  podeEditar={podeEditar}
                 />
               ))}
             </CardContent>
@@ -337,8 +339,20 @@ function Linha({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
 
 type ItemInteracao = Awaited<ReturnType<typeof listarInteracoes>>[number];
 
-function ItemDaTimeline({ interacao, ultimo }: { interacao: ItemInteracao; ultimo: boolean }) {
+/** Anotações lançadas à mão: as únicas que se corrigem ou excluem (as de sistema, status e anexo não). */
+const TIPOS_EDITAVEIS = ["nota", "ligacao", "email", "whatsapp", "acesso_remoto", "visita"];
+
+function ItemDaTimeline({
+  interacao,
+  ultimo,
+  podeEditar,
+}: {
+  interacao: ItemInteracao;
+  ultimo: boolean;
+  podeEditar: boolean;
+}) {
   const ehSistema = interacao.tipo === "sistema" || interacao.tipo === "mudanca_status";
+  const corrigivel = podeEditar && TIPOS_EDITAVEIS.includes(interacao.tipo);
 
   const descricao =
     interacao.tipo === "mudanca_status"
@@ -371,17 +385,31 @@ function ItemDaTimeline({ interacao, ultimo }: { interacao: ItemInteracao; ultim
           {interacao.tempo_gasto_minutos > 0 ? (
             <span>· {formatarDuracao(interacao.tempo_gasto_minutos)}</span>
           ) : null}
+          {interacao.editado_em ? (
+            <span title={`Editada em ${formatarDataHora(interacao.editado_em)}`}>· editada</span>
+          ) : null}
         </div>
 
-        <p
-          className={
-            ehSistema
-              ? "mt-0.5 text-sm text-muted-foreground"
-              : "mt-0.5 text-sm whitespace-pre-wrap"
-          }
-        >
-          {descricao}
-        </p>
+        {corrigivel ? (
+          <NotaEditavel
+            // Trocar a chave reinicia o editor quando o texto vem novo do servidor.
+            key={`${interacao.id}-${interacao.editado_em ?? ""}`}
+            id={interacao.id}
+            atendimentoId={interacao.atendimento_id}
+            conteudo={interacao.conteudo ?? ""}
+            tempo={interacao.tempo_gasto_minutos}
+          />
+        ) : (
+          <p
+            className={
+              ehSistema
+                ? "mt-0.5 text-sm text-muted-foreground"
+                : "mt-0.5 text-sm whitespace-pre-wrap"
+            }
+          >
+            {descricao}
+          </p>
+        )}
 
         {interacao.anexosResolvidos.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">

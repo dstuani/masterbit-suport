@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (104 verificações) |
+| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (114 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -237,7 +237,7 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               │
               ├─ atendimentos ── cliente, filial, contato, sistema, categoria,
               │      │           subcategoria, responsavel (profile)
-              │      ├─ atendimento_interacoes   (timeline, append-only)
+              │      ├─ atendimento_interacoes   (timeline; anotações manuais editáveis/ocultáveis)
               │      ├─ atendimento_anexos       (metadados; arquivo no Storage)
               │      ├─ pendencias               (ou ligada só ao cliente)
               │      └─ agenda_eventos           (ou ligado a cliente/pendência)
@@ -263,8 +263,12 @@ view atendimentos_lista = atendimentos + nomes de cliente, categoria, sistema,
   são usadas por todas as policies. Papéis restritos (`solicitante`, `agenda`) têm
   `org_atual()` NULL e usam `org_restrita()` nas policies próprias (veja abaixo). Leitura: mesma organização. Escrita: `owner` ou
   `tecnico`. `visualizador` só lê. Usuário com `ativo = false` não lê nem escreve nada.
-- **Timeline imutável:** `atendimento_interacoes` e `consultoria_comentarios` só têm
-  policy de SELECT e INSERT. Correção entra como nova interação.
+- **Timeline:** `consultoria_comentarios` só tem SELECT e INSERT. Em `atendimento_interacoes`
+  (migration `20261028120000`) owner e técnico corrigem o texto e o tempo das anotações manuais
+  (nota, ligação, e-mail, WhatsApp, acesso remoto, visita) e as excluem — excluir é só esconder
+  (`removido_em`, não volta) e o tempo sai do total do atendimento. Linhas do sistema, de status e
+  de anexo nunca mudam; autor, data e anexos também não (trigger `proteger_interacao`); anotação
+  editada mostra "editada". O texto antigo não é guardado.
 - **Triggers do atendimento:** número `AT-AAAA-NNNNN` automático; interação "Atendimento
   aberto" na criação; interação de status só ao encerrar (resolvido/cancelado) ou reabrir — as
   mudanças do meio não geram linha (migration `20261027120000`); `finalizado_em` preenchido ao

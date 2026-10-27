@@ -128,6 +128,21 @@ export const interacaoSchema = z.object({
 
 export type DadosInteracao = z.infer<typeof interacaoSchema>;
 
+/** Corrigir uma anotação já lançada: só o texto e o tempo (o banco recusa o resto). */
+export const edicaoInteracaoSchema = z.object({
+  id: z.uuid(),
+  atendimento_id: z.uuid(),
+  conteudo: z.string().trim().min(1, "Escreva o que foi feito"),
+  tempo_gasto_minutos: minutos,
+});
+
+export const exclusaoInteracaoSchema = z.object({
+  id: z.uuid(),
+  atendimento_id: z.uuid(),
+});
+
+export type DadosEdicaoInteracao = z.infer<typeof edicaoInteracaoSchema>;
+
 // ─── Mudança de status ───────────────────────────────────────────────────────
 
 export const mudancaStatusSchema = z

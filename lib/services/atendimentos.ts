@@ -8,6 +8,7 @@ import type { Database, Tabelas } from "@/lib/types/database";
 import type {
   DadosAtendimento,
   DadosConclusao,
+  DadosEdicaoInteracao,
   DadosInteracao,
   DadosMudancaStatus,
 } from "@/lib/schemas/atendimentos";
@@ -58,6 +59,7 @@ export async function listarAtendimentos(filtros: FiltrosAtendimentos = {}) {
       supabase
         .from("atendimento_interacoes")
         .select("atendimento_id")
+        .is("removido_em", null)
         .ilike("conteudo", `%${termo}%`),
     ]);
     if (conteudo.error) throw new Error(conteudo.error.message);
@@ -135,6 +137,7 @@ export async function listarInteracoes(atendimentoId: string) {
     .from("atendimento_interacoes")
     .select("*, profiles(nome)")
     .eq("atendimento_id", atendimentoId)
+    .is("removido_em", null)
     .order("ocorrido_em", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -221,6 +224,45 @@ export async function registrarInteracao(dados: DadosInteracao) {
       .update({ status: "em_andamento", updated_by: perfil.id })
       .eq("id", dados.atendimento_id);
   }
+}
+
+/** Tipos que o usuário lança à mão; os de sistema, status e anexo nunca mudam (o banco também recusa). */
+const TIPOS_EDITAVEIS = ["nota", "ligacao", "email", "whatsapp", "acesso_remoto", "visita"] as const;
+
+/** Corrige o texto e o tempo de uma anotação. O tempo do atendimento se ajusta por trigger. */
+export async function editarInteracao(dados: DadosEdicaoInteracao) {
+  await exigirPermissaoDeEscrita();
+  const supabase = await criarClienteServidor();
+
+  const { data, error } = await supabase
+    .from("atendimento_interacoes")
+    .update({ conteudo: dados.conteudo, tempo_gasto_minutos: dados.tempo_gasto_minutos })
+    .eq("id", dados.id)
+    .eq("atendimento_id", dados.atendimento_id)
+    .in("tipo", [...TIPOS_EDITAVEIS])
+    .is("removido_em", null)
+    .select("id");
+
+  if (error) throw new Error(traduzirErro(error.message));
+  if (!data || data.length === 0) throw new Error("Esta anotação não existe mais ou não pode ser alterada.");
+}
+
+/** Exclui = esconde (removido_em). O tempo dela sai do total do atendimento por trigger. */
+export async function excluirInteracao(id: string, atendimentoId: string) {
+  await exigirPermissaoDeEscrita();
+  const supabase = await criarClienteServidor();
+
+  const { data, error } = await supabase
+    .from("atendimento_interacoes")
+    .update({ removido_em: new Date().toISOString() })
+    .eq("id", id)
+    .eq("atendimento_id", atendimentoId)
+    .in("tipo", [...TIPOS_EDITAVEIS])
+    .is("removido_em", null)
+    .select("id");
+
+  if (error) throw new Error(traduzirErro(error.message));
+  if (!data || data.length === 0) throw new Error("Esta anotação não existe mais ou não pode ser excluída.");
 }
 
 /**

@@ -44,6 +44,7 @@ export async function listarMensagens(atendimentoId: string) {
     .from("atendimento_interacoes")
     .select("id, tipo, conteudo, status_anterior, status_novo, autor_id, ocorrido_em")
     .eq("atendimento_id", atendimentoId)
+    .is("removido_em", null)
     .order("ocorrido_em", { ascending: true })
     .order("created_at", { ascending: true });
 

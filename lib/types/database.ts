@@ -204,6 +204,8 @@ export type Database = {
           visivel_cliente: boolean;
           ocorrido_em: string;
           created_at: string;
+          editado_em: string | null;
+          removido_em: string | null;
         };
         Insert: {
           id?: string;
@@ -219,6 +221,8 @@ export type Database = {
           visivel_cliente?: boolean;
           ocorrido_em?: string;
           created_at?: string;
+          editado_em?: string | null;
+          removido_em?: string | null;
         };
         Update: {
           id?: string;
@@ -234,6 +238,8 @@ export type Database = {
           visivel_cliente?: boolean;
           ocorrido_em?: string;
           created_at?: string;
+          editado_em?: string | null;
+          removido_em?: string | null;
         };
         Relationships: [
           {

@@ -8,6 +8,8 @@ import { dadosDoFormulario } from "@/lib/schemas/cadastros";
 import {
   atendimentoSchema,
   conclusaoSchema,
+  edicaoInteracaoSchema,
+  exclusaoInteracaoSchema,
   interacaoSchema,
   mudancaStatusSchema,
   tituloSchema,
@@ -16,6 +18,8 @@ import {
   atualizarAtendimento,
   concluirAtendimento,
   criarAtendimento,
+  editarInteracao,
+  excluirInteracao,
   mudarStatus,
   registrarInteracao,
 } from "@/lib/services/atendimentos";
@@ -171,6 +175,36 @@ export async function concluirAtendimentoAction(
 
   try {
     await concluirAtendimento(analise.data);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath(`/atendimentos/${analise.data.atendimento_id}`);
+  revalidatePath("/atendimentos");
+  return { erro: null };
+}
+
+export async function editarInteracaoAction(formData: FormData): Promise<EstadoFormulario> {
+  const analise = edicaoInteracaoSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return erroDeValidacao(analise.error.issues);
+
+  try {
+    await editarInteracao(analise.data);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath(`/atendimentos/${analise.data.atendimento_id}`);
+  revalidatePath("/atendimentos");
+  return { erro: null };
+}
+
+export async function excluirInteracaoAction(formData: FormData): Promise<EstadoFormulario> {
+  const analise = exclusaoInteracaoSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return { erro: "Anotação inválida." };
+
+  try {
+    await excluirInteracao(analise.data.id, analise.data.atendimento_id);
   } catch (erro) {
     return { erro: mensagemDoErro(erro) };
   }

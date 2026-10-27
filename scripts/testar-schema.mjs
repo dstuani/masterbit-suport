@@ -706,6 +706,69 @@ async function main() {
   );
   verificar("usuário da agenda remarca evento", remarcou.length === 1);
 
+  // ── Editar e excluir anotações (owner e técnico) ──
+  const { rows: tempoAntes } = await comoUsuario(userId, `select tempo_gasto_minutos as t from atendimentos where id = $1`, [atendSolId]);
+  const { rows: notaDono } = await comoUsuario(
+    userId,
+    `insert into atendimento_interacoes (org_id, atendimento_id, autor_id, tipo, conteudo, tempo_gasto_minutos)
+     values ($1, $2, $3, 'nota', 'Texto errado', 20) returning id`,
+    [orgId, atendSolId, userId],
+  );
+  const notaId = notaDono[0].id;
+  const { rows: tempoComNota } = await comoUsuario(userId, `select tempo_gasto_minutos as t from atendimentos where id = $1`, [atendSolId]);
+  verificar("a nota soma o tempo no atendimento", tempoComNota[0].t === tempoAntes[0].t + 20);
+
+  const { rows: editou } = await comoUsuario(
+    userId,
+    `update atendimento_interacoes set conteudo = 'Texto certo', tempo_gasto_minutos = 30
+      where id = $1 returning editado_em`,
+    [notaId],
+  );
+  verificar("owner edita o texto e o tempo da anotação, que fica marcada como editada", editou.length === 1 && editou[0].editado_em !== null);
+  const { rows: tempoEditado } = await comoUsuario(userId, `select tempo_gasto_minutos as t from atendimentos where id = $1`, [atendSolId]);
+  verificar("corrigir o tempo ajusta o total do atendimento", tempoEditado[0].t === tempoAntes[0].t + 30);
+  await rejeitaComo(
+    userId,
+    "não dá para trocar o autor de uma anotação",
+    `update atendimento_interacoes set autor_id = '${solId}' where id = '${notaId}'`,
+    "só o texto e o tempo",
+  );
+  await rejeitaComo(
+    userId,
+    "não dá para mudar a data de uma anotação",
+    `update atendimento_interacoes set ocorrido_em = now() - interval '1 day' where id = '${notaId}'`,
+    "só o texto e o tempo",
+  );
+  const { rows: sistemaEditado } = await comoUsuario(
+    userId,
+    `update atendimento_interacoes set conteudo = 'adulterado'
+      where atendimento_id = $1 and tipo = 'sistema' returning id`,
+    [atendOutro[0].id],
+  );
+  verificar("linha do sistema não é editável", sistemaEditado.length === 0);
+  const { rows: solEdita } = await comoUsuario(
+    solId,
+    `update atendimento_interacoes set conteudo = 'mexi' where id = $1 returning id`,
+    [notaId],
+  );
+  verificar("solicitante não edita anotações", solEdita.length === 0);
+
+  await comoUsuario(userId, `update atendimento_interacoes set removido_em = now() where id = $1`, [notaId]);
+  const { rows: tempoExcluido } = await comoUsuario(userId, `select tempo_gasto_minutos as t from atendimentos where id = $1`, [atendSolId]);
+  verificar("excluir a anotação tira o tempo dela do total", tempoExcluido[0].t === tempoAntes[0].t);
+  const { rows: voltou } = await comoUsuario(
+    userId,
+    `update atendimento_interacoes set removido_em = null where id = $1 returning id`,
+    [notaId],
+  );
+  verificar("anotação excluída não volta", voltou.length === 0);
+  const { rows: soVeAtivas } = await comoUsuario(
+    solId,
+    `select id from atendimento_interacoes where id = $1`,
+    [notaId],
+  );
+  verificar("o solicitante não enxerga anotação excluída", soVeAtivas.length === 0);
+
   await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
   // Os dois saem de cena para não mexer nas contagens dos testes seguintes.
   await db.exec(`update profiles set ativo = false where id in ('${solId}', '${agId}')`);
