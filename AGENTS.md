@@ -450,7 +450,9 @@ português, curtos.
    não quebra o TypeScript — quebra em execução.
 10. **Automação fora do banco:** a primeira interação muda o atendimento de `aberto`
     para `em_andamento` em `registrarInteracao` (aplicação), não por trigger.
-11. **Fuso horário:** "hoje" e "este mês" ainda usam a hora do servidor fora dos Relatórios. Nos
+11. **Fuso horário:** os formatadores de `lib/utils.ts` mostram sempre o horário de Brasília (o servidor roda em
+    UTC); e `datetime-local` chega sem fuso, então os schemas da agenda e das manutenções acrescentam `-03:00`
+    (o banco leria como UTC). "Hoje" e "este mês" ainda usam a hora do servidor fora dos Relatórios. Nos
     Relatórios os limites do período usam `-03:00` fixo e o agrupamento por dia, semana e
     faixa do dia usa `America/Sao_Paulo` (o Brasil não tem horário de verão desde 2019; se
     voltar, ajustar `DESLOCAMENTO` em `lib/services/relatorios.ts`).

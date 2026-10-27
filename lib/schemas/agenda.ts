@@ -24,6 +24,15 @@ export const TIPO_EVENTO = [
 
 export const STATUS_EVENTO = ["agendado", "confirmado", "realizado", "cancelado", "remarcado"] as const;
 
+// datetime-local chega sem fuso ("2026-10-27T09:00") e um dia inteiro como "2026-10-27"; o
+// banco leria os dois como UTC e gravaria 3 horas a menos. O Brasil não tem horário de verão
+// desde 2019, então -03:00 fixo é o horário de Brasília.
+function comFusoDeBrasilia(v: string): string {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return `${v}:00-03:00`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v}T00:00:00-03:00`;
+  return v;
+}
+
 // ─── Criação ─────────────────────────────────────────────────────────────────
 
 export const eventoSchema = z
@@ -38,12 +47,13 @@ export const eventoSchema = z
       .string()
       .trim()
       .min(1, "Informe a data e hora")
-      .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida"),
+      .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida")
+      .transform(comFusoDeBrasilia),
     fim: z
       .string()
       .trim()
       .optional()
-      .transform((v) => (v && v.length > 0 ? v : null))
+      .transform((v) => (v && v.length > 0 ? comFusoDeBrasilia(v) : null))
       .refine((v) => v === null || !Number.isNaN(Date.parse(v)), "Data inválida"),
     dia_inteiro: z.coerce.boolean(),
     local: textoOpcional,
@@ -81,12 +91,13 @@ export const remarcarEventoSchema = z
       .string()
       .trim()
       .min(1, "Informe a nova data e hora")
-      .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida"),
+      .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida")
+      .transform(comFusoDeBrasilia),
     fim: z
       .string()
       .trim()
       .optional()
-      .transform((v) => (v && v.length > 0 ? v : null))
+      .transform((v) => (v && v.length > 0 ? comFusoDeBrasilia(v) : null))
       .refine((v) => v === null || !Number.isNaN(Date.parse(v)), "Data inválida"),
     motivo: textoOpcional,
   })

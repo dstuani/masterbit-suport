@@ -8,9 +8,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const FUSO = "America/Sao_Paulo";
+const NO_FUSO = new Intl.DateTimeFormat("en-CA", {
+  timeZone: FUSO,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+/**
+ * Datas e horas sempre no horário de Brasília. O servidor (Vercel) roda em UTC e o
+ * navegador em qualquer fuso: sem isto o mesmo instante aparecia 3 horas adiantado.
+ * Monta uma data cujos campos locais são os de Brasília e deixa o date-fns formatar.
+ */
+function paraBrasilia(instante: Date) {
+  const p = Object.fromEntries(NO_FUSO.formatToParts(instante).map((x) => [x.type, x.value]));
+  return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
+}
+
 export function formatarData(valor: string | Date | null | undefined, padrao = "dd/MM/yyyy") {
   if (!valor) return "—";
-  return format(new Date(valor), padrao, { locale: ptBR });
+  const instante = new Date(valor);
+  if (Number.isNaN(instante.getTime())) return "—";
+  return format(paraBrasilia(instante), padrao, { locale: ptBR });
 }
 
 export function formatarDataHora(valor: string | Date | null | undefined) {
