@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 
 import { editarInteracaoAction, excluirInteracaoAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+const CLASSE_CABECALHO = "flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground";
 
 /**
  * Texto de uma anotação com lápis (corrigir) e lixeira (excluir).
@@ -19,11 +21,14 @@ export function NotaEditavel({
   atendimentoId,
   conteudo,
   tempo,
+  cabecalho,
 }: {
   id: string;
   atendimentoId: string;
   conteudo: string;
   tempo: number;
+  /** Data, hora e tempo da anotação; os botões ficam na mesma linha. */
+  cabecalho: ReactNode;
 }) {
   const [modo, setModo] = useState<"ver" | "editar" | "excluir">("ver");
   const [texto, setTexto] = useState(conteudo);
@@ -53,7 +58,8 @@ export function NotaEditavel({
 
   if (modo === "editar") {
     return (
-      <div className="mt-1 flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
+        <div className={CLASSE_CABECALHO}>{cabecalho}</div>
         <Textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -97,6 +103,31 @@ export function NotaEditavel({
 
   return (
     <div className="group">
+      {/* Data e hora à esquerda, Editar e Excluir na mesma linha. */}
+      <div className={CLASSE_CABECALHO}>
+        {cabecalho}
+        {modo === "ver" ? (
+          <span className="ml-1 inline-flex gap-1">
+            <button
+              type="button"
+              onClick={() => setModo("editar")}
+              className="inline-flex items-center gap-1 rounded-app px-1.5 py-0.5 text-xs hover:bg-surface-muted hover:text-foreground"
+            >
+              <Pencil className="size-3" />
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo("excluir")}
+              className="inline-flex items-center gap-1 rounded-app px-1.5 py-0.5 text-xs hover:bg-surface-muted hover:text-red-600 dark:hover:text-red-400"
+            >
+              <Trash2 className="size-3" />
+              Excluir
+            </button>
+          </span>
+        ) : null}
+      </div>
+
       <p className="mt-0.5 text-sm whitespace-pre-wrap">{conteudo}</p>
 
       {modo === "excluir" ? (
@@ -115,26 +146,7 @@ export function NotaEditavel({
             Manter
           </Button>
         </div>
-      ) : (
-        <div className="mt-1 flex gap-1 text-muted-foreground">
-          <button
-            type="button"
-            onClick={() => setModo("editar")}
-            className="inline-flex items-center gap-1 rounded-app px-1.5 py-0.5 text-xs hover:bg-surface-muted hover:text-foreground"
-          >
-            <Pencil className="size-3" />
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => setModo("excluir")}
-            className="inline-flex items-center gap-1 rounded-app px-1.5 py-0.5 text-xs hover:bg-surface-muted hover:text-red-600 dark:hover:text-red-400"
-          >
-            <Trash2 className="size-3" />
-            Excluir
-          </button>
-        </div>
-      )}
+      ) : null}
       {erro ? (
         <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
           {erro}

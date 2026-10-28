@@ -347,6 +347,8 @@ type ItemInteracao = Awaited<ReturnType<typeof listarInteracoes>>[number];
 /** Anotações lançadas à mão: as únicas que se corrigem ou excluem (as de sistema, status e anexo não). */
 const TIPOS_EDITAVEIS = ["nota", "ligacao", "email", "whatsapp", "acesso_remoto", "visita"];
 
+const CLASSE_CABECALHO = "flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground";
+
 function ItemDaTimeline({
   interacao,
   ultimo,
@@ -366,6 +368,23 @@ function ItemDaTimeline({
         } → ${interacao.status_novo ? STATUS_ATENDIMENTO[interacao.status_novo].rotulo : "—"}`
       : interacao.conteudo;
 
+  // Lançamentos de quem escreve não mostram o nome: só data, hora e o conteúdo.
+  const cabecalho = (
+    <>
+      {ehSistema ? <span className="font-medium text-foreground">Sistema ·</span> : null}
+      {!ehSistema && interacao.tipo !== "nota" && interacao.tipo !== "anexo" ? (
+        <span>{TIPOS_INTERACAO[interacao.tipo]} ·</span>
+      ) : null}
+      <span>{formatarDataHora(interacao.ocorrido_em)}</span>
+      {interacao.tempo_gasto_minutos > 0 ? (
+        <span>· {formatarDuracao(interacao.tempo_gasto_minutos)}</span>
+      ) : null}
+      {interacao.editado_em ? (
+        <span title={`Editada em ${formatarDataHora(interacao.editado_em)}`}>· editada</span>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="flex gap-3">
       {/* Trilho vertical: dá continuidade visual à sequência de eventos. */}
@@ -381,21 +400,6 @@ function ItemDaTimeline({
       </div>
 
       <div className={ultimo ? "min-w-0 flex-1 pb-1" : "min-w-0 flex-1 pb-5"}>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-          {/* Lançamentos de quem escreve não mostram o nome: só data, hora e o conteúdo. */}
-          {ehSistema ? <span className="font-medium text-foreground">Sistema ·</span> : null}
-          {!ehSistema && interacao.tipo !== "nota" && interacao.tipo !== "anexo" ? (
-            <span>{TIPOS_INTERACAO[interacao.tipo]} ·</span>
-          ) : null}
-          <span>{formatarDataHora(interacao.ocorrido_em)}</span>
-          {interacao.tempo_gasto_minutos > 0 ? (
-            <span>· {formatarDuracao(interacao.tempo_gasto_minutos)}</span>
-          ) : null}
-          {interacao.editado_em ? (
-            <span title={`Editada em ${formatarDataHora(interacao.editado_em)}`}>· editada</span>
-          ) : null}
-        </div>
-
         {corrigivel ? (
           <NotaEditavel
             // Trocar a chave reinicia o editor quando o texto vem novo do servidor.
@@ -404,8 +408,13 @@ function ItemDaTimeline({
             atendimentoId={interacao.atendimento_id}
             conteudo={interacao.conteudo ?? ""}
             tempo={interacao.tempo_gasto_minutos}
+            cabecalho={cabecalho}
           />
-        ) : interacao.tipo === "anexo" ? null : (
+        ) : (
+          <div className={CLASSE_CABECALHO}>{cabecalho}</div>
+        )}
+
+        {corrigivel || interacao.tipo === "anexo" ? null : (
           <p
             className={
               ehSistema
