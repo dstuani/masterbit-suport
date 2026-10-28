@@ -57,6 +57,11 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
   const encerrado = atendimento.status === "resolvido" || atendimento.status === "cancelado";
   // Encerrado ou sem permissão de escrita: a tela vira só leitura.
   const editavel = podeEditar && !encerrado;
+  // Entradas de anexo são só o aviso do arquivo: "Removeu o anexo" some, e "Anexou" só
+  // aparece enquanto o arquivo existe, mostrando a imagem sem o texto do aviso.
+  const linhasVisiveis = interacoes.filter(
+    (i) => i.tipo !== "anexo" || (i.anexosResolvidos.length > 0 && !(i.conteudo ?? "").startsWith("Removeu")),
+  );
   const esperando =
     atendimento.status === "aguardando_cliente" || atendimento.status === "aguardando_terceiro";
 
@@ -135,11 +140,11 @@ export default async function AtendimentoPage({ params }: { params: Promise<{ id
               <CardTitle>Histórico</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-0">
-              {interacoes.map((interacao, indice) => (
+              {linhasVisiveis.map((interacao, indice) => (
                 <ItemDaTimeline
                   key={interacao.id}
                   interacao={interacao}
-                  ultimo={indice === interacoes.length - 1}
+                  ultimo={indice === linhasVisiveis.length - 1}
                   podeEditar={podeEditar}
                 />
               ))}
@@ -377,11 +382,12 @@ function ItemDaTimeline({
 
       <div className={ultimo ? "min-w-0 flex-1 pb-1" : "min-w-0 flex-1 pb-5"}>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">
-            {ehSistema ? "Sistema" : (interacao.profiles?.nome ?? "—")}
-          </span>
-          {!ehSistema ? <span>· {TIPOS_INTERACAO[interacao.tipo]}</span> : null}
-          <span>· {formatarDataHora(interacao.ocorrido_em)}</span>
+          {/* Lançamentos de quem escreve não mostram o nome: só data, hora e o conteúdo. */}
+          {ehSistema ? <span className="font-medium text-foreground">Sistema ·</span> : null}
+          {!ehSistema && interacao.tipo !== "nota" && interacao.tipo !== "anexo" ? (
+            <span>{TIPOS_INTERACAO[interacao.tipo]} ·</span>
+          ) : null}
+          <span>{formatarDataHora(interacao.ocorrido_em)}</span>
           {interacao.tempo_gasto_minutos > 0 ? (
             <span>· {formatarDuracao(interacao.tempo_gasto_minutos)}</span>
           ) : null}
@@ -399,7 +405,7 @@ function ItemDaTimeline({
             conteudo={interacao.conteudo ?? ""}
             tempo={interacao.tempo_gasto_minutos}
           />
-        ) : (
+        ) : interacao.tipo === "anexo" ? null : (
           <p
             className={
               ehSistema
@@ -412,16 +418,26 @@ function ItemDaTimeline({
         )}
 
         {interacao.anexosResolvidos.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-col items-start gap-2">
             {interacao.anexosResolvidos.map((anexo) =>
               anexo.url && ehImagem(anexo.tipoMime) ? (
-                <a key={anexo.id} href={anexo.url} target="_blank" rel="noopener noreferrer">
+                // A imagem faz parte da mensagem: aparece inteira, na largura do histórico.
+                // Clicar abre o arquivo em outra aba.
+                <a
+                  key={anexo.id}
+                  href={anexo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block max-w-full"
+                  title="Abrir em tamanho original"
+                >
                   {/* URL assinada externa: next/image exigiria configurar o domínio do Storage. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={anexo.url}
                     alt={anexo.nome}
-                    className="size-20 rounded-app border border-border object-cover"
+                    loading="lazy"
+                    className="h-auto max-h-[36rem] w-auto max-w-full rounded-app border border-border bg-surface"
                   />
                 </a>
               ) : (
