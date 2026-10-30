@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (114 verificações) |
+| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (119 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -150,6 +150,7 @@ app/
 │   ├── pendencias/         lista, nova
 │   ├── agenda/             lista + minicalendário, novo, [id]
 │   ├── consultas/          busca no histórico + buscas salvas + CSV
+│   ├── conhecimento/       base de conhecimento: comandos SQL com descrição (lista com busca, novo, [id]/editar)
 │   ├── casos-parecidos/    "já resolvi algo assim?" (fora do menu desde 15/10/2026; a rota continua)
 │   ├── relatorios/         métricas do período + CSV
 │   └── configuracoes/      abas: sistemas, categorias, conta, equipe, auditoria
@@ -213,6 +214,7 @@ exigem sessão (o `proxy.ts` redireciona com `?de=` para voltar depois).
 | **Consultas** | full-text + filtros combinados; buscas salvas no navegador; exporta CSV | resultados abrem o atendimento |
 | **Casos parecidos** | busca nos atendimentos **resolvidos** (função `buscar_atendimentos_parecidos`) | sem resultado → "Criar novo atendimento com estes termos" (`?titulo=`) |
 | **Relatórios** | painel com filtros na URL (período, cliente, categoria, sistema, responsável, situação, canal, tipo, prioridade e a métrica atendimentos/tempo): indicadores com variação contra o período anterior, faixa de situação (barra de 100% por situação, situação dentro de cada tipo/categoria/canal e resolvidos por categoria), evolução (dia/semana/mês), barras por dimensão (clicar numa barra aplica o filtro), mapa de calor por dia e faixa do horário, lista do recorte e CSV | `/atendimentos/[id]` |
+| **Base de conhecimento** | comandos SQL guardados com a explicação. A busca separa as palavras e exige todas, em título, descrição ou SQL (ilike, sensível a acento); filtros por sistema e categoria (as mesmas dos atendimentos); botão Copiar SQL. Excluir apaga de vez (decisão de produto). Só owner e técnico escrevem; papéis restritos não veem | `/conhecimento` |
 | **Equipamentos** | parque de máquinas dos clientes: busca (nome, patrimônio, série, usuário, setor), filtros por cliente, tipo e situação (inclui "sem coleta há 15+ dias"); ficha com hardware, discos com espaço livre, rede, mudanças de hardware percebidas pela coleta e o histórico de manutenções (tipo, peça retirada/instalada, custo, atendimento). **Relatório** (`/equipamentos/relatorio`): período, cliente, tipo de equipamento e tipo de manutenção; indicadores, barras clicáveis, discos quase cheios, sem coleta, tabelas e CSV de manutenções | ficha do cliente, aba Equipamentos: lista do cliente + **Coleta automática** (gerar chave e baixar o script, revogar chave) |
 | **Configurações** | Sistemas, Categorias, Conta (tema, perfil, senha); Equipe e Auditoria só para `owner` | Equipe: papel, ativar/desativar, novo usuário com senha temporária |
 
@@ -224,7 +226,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-24 tabelas, 1 view, RLS em todas. Papéis: owner, tecnico, visualizador, solicitante, agenda. Toda tabela de negócio tem `org_id`.
+25 tabelas, 1 view, RLS em todas. Papéis: owner, tecnico, visualizador, solicitante, agenda. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -249,6 +251,7 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               ├─ equipamentos ── cliente, filial ─┬─ equipamento_manutencoes (append-only; tipo, peças, custo)
               │                                    └─ equipamento_alteracoes (hardware que mudou entre coletas)
               ├─ coleta_chaves (por cliente; só o hash SHA-256 da chave)
+              ├─ conhecimentos (Base de conhecimento: titulo, descricao, comando SQL; sistema e categoria opcionais)
               ├─ solicitacoes (formulário público da landing; só a função
               │               registrar_solicitacao() cria linhas)
               └─ audit_logs   (preenchida só por trigger)

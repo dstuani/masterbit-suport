@@ -770,6 +770,34 @@ async function main() {
   verificar("o solicitante não enxerga anotação excluída", soVeAtivas.length === 0);
 
   await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
+  // ── Base de conhecimento ──
+  await comoUsuario(
+    userId,
+    `insert into conhecimentos (org_id, titulo, descricao, comando)
+     values ($1, 'Estoque negativo', 'Lista produtos com saldo menor que zero', 'select * from estoque where saldo < 0')`,
+    [orgId],
+  );
+  const { rows: conhTec } = await comoUsuario(userId, `select id from conhecimentos`);
+  verificar("técnico grava e lê comando da base de conhecimento", conhTec.length === 1);
+  const { rows: conhRestritos } = await comoUsuario(solId, `select id from conhecimentos`);
+  const { rows: conhAgenda } = await comoUsuario(agId, `select id from conhecimentos`);
+  verificar("solicitante e agenda não enxergam a base de conhecimento", conhRestritos.length === 0 && conhAgenda.length === 0);
+  await rejeitaComo(
+    solId,
+    "solicitante não grava na base de conhecimento",
+    `insert into conhecimentos (org_id, titulo, descricao, comando) values ('${orgId}', 'x', 'y', 'select 1')`,
+    "row-level security",
+  );
+  await deveRejeitar(
+    db,
+    "comando em branco é recusado",
+    `insert into conhecimentos (org_id, titulo, descricao, comando) values ('${orgId}', 'x', 'y', '   ')`,
+    "conhecimentos_comando_valido",
+  );
+  await comoUsuario(userId, `delete from conhecimentos`);
+  const { rows: conhApagado } = await db.query(`select count(*)::int as n from conhecimentos`);
+  verificar("excluir apaga o comando de vez", conhApagado[0].n === 0);
+
   // Os dois saem de cena para não mexer nas contagens dos testes seguintes.
   await db.exec(`update profiles set ativo = false where id in ('${solId}', '${agId}')`);
 

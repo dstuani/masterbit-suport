@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
@@ -36,6 +37,7 @@ export const NAVEGACAO: { secao: string; itens: ItemNav[] }[] = [
     itens: [
       { titulo: "Clientes", href: "/clientes", icone: Building2 },
       { titulo: "Equipamentos", href: "/equipamentos", icone: Monitor },
+      { titulo: "Base de conhecimento", href: "/conhecimento", icone: BookOpen },
     ],
   },
   {

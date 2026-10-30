@@ -848,6 +848,84 @@ export type Database = {
           },
         ];
       };
+      conhecimentos: {
+        Row: {
+          id: string;
+          org_id: string;
+          titulo: string;
+          descricao: string;
+          comando: string;
+          sistema_id: string | null;
+          categoria_id: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          titulo: string;
+          descricao: string;
+          comando: string;
+          sistema_id?: string | null;
+          categoria_id?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          titulo?: string;
+          descricao?: string;
+          comando?: string;
+          sistema_id?: string | null;
+          categoria_id?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conhecimentos_categoria_id_fkey";
+            columns: ["categoria_id"];
+            isOneToOne: false;
+            referencedRelation: "categorias";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conhecimentos_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conhecimentos_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conhecimentos_sistema_id_fkey";
+            columns: ["sistema_id"];
+            isOneToOne: false;
+            referencedRelation: "sistemas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conhecimentos_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       consultoria_anexos: {
         Row: {
           id: string;

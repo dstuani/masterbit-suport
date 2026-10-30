@@ -10,6 +10,7 @@
  */
 import { atendimentoSchema, conclusaoSchema, interacaoSchema, mudancaStatusSchema } from "../lib/schemas/atendimentos";
 import { clienteSchema, contatoSchema, filialSchema } from "../lib/schemas/cadastros";
+import { conhecimentoSchema } from "../lib/schemas/conhecimento";
 import { criarUsuarioSchema } from "../lib/schemas/equipe";
 import { mensagemSchema, pedidoSchema } from "../lib/schemas/meus-atendimentos";
 
@@ -230,6 +231,22 @@ aceita("pedido com assunto e descrição", pedidoSchema, {
 });
 recusa("pedido sem descrição", pedidoSchema, { titulo: "Impressora parada", descricao: "" });
 recusa("mensagem vazia", mensagemSchema, { atendimento_id: UUID, conteudo: "   " });
+
+// Base de conhecimento: sistema e categoria são opcionais (select vazio ou ausente).
+aceita("comando só com o essencial", conhecimentoSchema, {
+  titulo: "Estoque negativo",
+  descricao: "Lista produtos com saldo menor que zero",
+  comando: "select * from estoque where saldo < 0",
+});
+aceita("comando com sistema e categoria vazios", conhecimentoSchema, {
+  titulo: "Estoque negativo",
+  descricao: "Lista produtos com saldo menor que zero",
+  comando: "select 1",
+  sistema_id: "",
+  categoria_id: "",
+});
+recusa("comando sem SQL", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "Lista produtos", comando: "  " });
+recusa("comando sem descrição", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "", comando: "select 1" });
 
 console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);
 if (falhas.length > 0) process.exit(1);
