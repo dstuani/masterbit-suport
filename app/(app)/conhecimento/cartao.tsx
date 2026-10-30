@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, Copy, Pencil, Trash2 } from "lucide-react";
+import { Check, Code, Copy, Pencil, Trash2 } from "lucide-react";
 
 import { excluirConhecimentoAction } from "./actions";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,15 @@ export type ItemConhecimento = {
   categoria: string | null;
 };
 
-export function CartaoConhecimento({ item, podeEditar }: { item: ItemConhecimento; podeEditar: boolean }) {
+export function CartaoConhecimento({
+  item,
+  podeEditar,
+}: {
+  item: ItemConhecimento;
+  podeEditar: boolean;
+}) {
   const [copiado, setCopiado] = useState(false);
+  const [verSql, setVerSql] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
@@ -57,6 +64,16 @@ export function CartaoConhecimento({ item, podeEditar }: { item: ItemConheciment
           </div>
 
           <div className="flex flex-wrap items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setVerSql((v) => !v)}
+              aria-expanded={verSql}
+            >
+              <Code />
+              {verSql ? "Ocultar detalhes" : "Ver detalhes"}
+            </Button>
             <Button type="button" size="sm" variant="outline" onClick={copiar}>
               {copiado ? <Check /> : <Copy />}
               {copiado ? "Copiado" : "Copiar SQL"}
@@ -70,7 +87,12 @@ export function CartaoConhecimento({ item, podeEditar }: { item: ItemConheciment
                   </Link>
                 </Button>
                 {confirmando ? null : (
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmando(true)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setConfirmando(true)}
+                  >
                     <Trash2 />
                     Excluir
                   </Button>
@@ -80,19 +102,36 @@ export function CartaoConhecimento({ item, podeEditar }: { item: ItemConheciment
           </div>
         </div>
 
-        <p className="text-sm whitespace-pre-wrap">{item.descricao}</p>
-
-        <pre className="max-h-80 overflow-auto rounded-app border border-border bg-surface-muted p-3 text-xs leading-relaxed">
-          <code>{item.comando}</code>
-        </pre>
+        {verSql ? (
+          <>
+            <p className="text-sm whitespace-pre-wrap">{item.descricao}</p>
+            <pre className="max-h-80 overflow-auto rounded-app border border-border bg-surface-muted p-3 text-xs leading-relaxed">
+              <code>{item.comando}</code>
+            </pre>
+          </>
+        ) : null}
 
         {confirmando ? (
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-red-600 dark:text-red-400">Excluir este comando? Não dá para desfazer.</span>
-            <Button type="button" size="sm" variant="destructive" disabled={pendente} onClick={excluir}>
+            <span className="text-red-600 dark:text-red-400">
+              Excluir este comando? Não dá para desfazer.
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={pendente}
+              onClick={excluir}
+            >
               {pendente ? "Excluindo…" : "Excluir"}
             </Button>
-            <Button type="button" size="sm" variant="ghost" disabled={pendente} onClick={() => setConfirmando(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={pendente}
+              onClick={() => setConfirmando(false)}
+            >
               Manter
             </Button>
           </div>
