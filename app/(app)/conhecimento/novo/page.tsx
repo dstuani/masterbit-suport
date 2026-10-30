@@ -2,30 +2,33 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
-import { opcoesDoConhecimento } from "@/lib/services/conhecimento";
+import { TIPOS_CONHECIMENTO } from "@/lib/schemas/conhecimento";
 import { FormularioConhecimento } from "../formulario";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Novo comando" };
+export const metadata = { title: "Inclusão" };
 
-export default async function NovoConhecimentoPage() {
+export default async function NovoConhecimentoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
+  const { tipo } = await searchParams;
   await exigirEscritaNaPagina("/conhecimento");
 
   if (!supabaseConfigurado) {
     return (
       <>
-        <PageHeader titulo="Novo comando" />
+        <PageHeader titulo="Inclusão" />
         <AvisoSupabase />
       </>
     );
   }
 
-  const opcoes = await opcoesDoConhecimento();
-
   return (
     <>
-      <PageHeader titulo="Novo comando" descricao="Guarde o SQL junto da explicação para achar depois por palavra." />
-      <FormularioConhecimento opcoes={opcoes} />
+      <PageHeader titulo="Inclusão" />
+      <FormularioConhecimento tipoInicial={TIPOS_CONHECIMENTO.find((t) => t === tipo)} />
     </>
   );
 }

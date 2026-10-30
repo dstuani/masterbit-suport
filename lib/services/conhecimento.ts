@@ -1,5 +1,5 @@
 import { exigirPerfil, exigirPermissaoDeEscrita } from "@/lib/auth";
-import type { DadosConhecimento, DadosEdicaoConhecimento } from "@/lib/schemas/conhecimento";
+import type { DadosConhecimento, DadosEdicaoConhecimento, TipoConhecimento } from "@/lib/schemas/conhecimento";
 import { traduzirErro } from "@/lib/services/erros";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Tabelas } from "@/lib/types/database";
@@ -12,9 +12,8 @@ export type ConhecimentoComContexto = Conhecimento & {
 };
 
 export type FiltrosConhecimento = {
+  tipo?: TipoConhecimento;
   busca?: string;
-  sistemaId?: string;
-  categoriaId?: string;
 };
 
 const SELECAO = "*, sistemas(nome), categorias(nome)";
@@ -25,8 +24,7 @@ export async function listarConhecimentos(filtros: FiltrosConhecimento = {}): Pr
 
   let query = supabase.from("conhecimentos").select(SELECAO).order("titulo").limit(500);
 
-  if (filtros.sistemaId) query = query.eq("sistema_id", filtros.sistemaId);
-  if (filtros.categoriaId) query = query.eq("categoria_id", filtros.categoriaId);
+  if (filtros.tipo) query = query.eq("tipo", filtros.tipo);
 
   // Cada palavra é um .or() próprio, e os .or() se combinam com E: "estoque negativo" acha
   // itens que tenham as duas palavras, em qualquer dos três campos. O termo entra numa
@@ -44,16 +42,6 @@ export async function listarConhecimentos(filtros: FiltrosConhecimento = {}): Pr
   const { data, error } = await query;
   if (error) throw new Error(traduzirErro(error.message));
   return (data ?? []) as ConhecimentoComContexto[];
-}
-
-export async function opcoesDoConhecimento() {
-  await exigirPerfil();
-  const supabase = await criarClienteServidor();
-  const [sistemas, categorias] = await Promise.all([
-    supabase.from("sistemas").select("id, nome").eq("ativo", true).order("nome"),
-    supabase.from("categorias").select("id, nome").eq("ativo", true).order("ordem").order("nome"),
-  ]);
-  return { sistemas: sistemas.data ?? [], categorias: categorias.data ?? [] };
 }
 
 export async function obterConhecimento(id: string): Promise<Conhecimento | null> {

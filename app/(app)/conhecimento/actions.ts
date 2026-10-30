@@ -26,7 +26,7 @@ export async function criarConhecimentoAction(
   }
 
   revalidatePath("/conhecimento");
-  redirect("/conhecimento");
+  redirect(`/conhecimento?tipo=${analise.data.tipo}`);
 }
 
 export async function atualizarConhecimentoAction(
@@ -43,7 +43,7 @@ export async function atualizarConhecimentoAction(
   }
 
   revalidatePath("/conhecimento");
-  redirect("/conhecimento");
+  redirect(`/conhecimento?tipo=${analise.data.tipo}`);
 }
 
 export async function excluirConhecimentoAction(formData: FormData): Promise<EstadoFormulario> {

@@ -232,21 +232,16 @@ aceita("pedido com assunto e descrição", pedidoSchema, {
 recusa("pedido sem descrição", pedidoSchema, { titulo: "Impressora parada", descricao: "" });
 recusa("mensagem vazia", mensagemSchema, { atendimento_id: UUID, conteudo: "   " });
 
-// Base de conhecimento: sistema e categoria são opcionais (select vazio ou ausente).
+// Base de conhecimento
 aceita("comando só com o essencial", conhecimentoSchema, {
+  tipo: "select",
   titulo: "Estoque negativo",
   descricao: "Lista produtos com saldo menor que zero",
   comando: "select * from estoque where saldo < 0",
 });
-aceita("comando com sistema e categoria vazios", conhecimentoSchema, {
-  titulo: "Estoque negativo",
-  descricao: "Lista produtos com saldo menor que zero",
-  comando: "select 1",
-  sistema_id: "",
-  categoria_id: "",
-});
-recusa("comando sem SQL", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "Lista produtos", comando: "  " });
-recusa("comando sem descrição", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "", comando: "select 1" });
+recusa("item sem sessão", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "Lista produtos", comando: "select 1" });
+recusa("comando sem SQL", conhecimentoSchema, { tipo: "select", titulo: "Estoque negativo", descricao: "Lista produtos", comando: "  " });
+aceita("comando sem descrição", conhecimentoSchema, { tipo: "select", titulo: "Estoque negativo", comando: "select 1" });
 
 console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);
 if (falhas.length > 0) process.exit(1);

@@ -4,7 +4,7 @@ import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirEscritaNaPagina } from "@/lib/auth";
 import { supabaseConfigurado } from "@/lib/env";
-import { obterConhecimento, opcoesDoConhecimento } from "@/lib/services/conhecimento";
+import { obterConhecimento } from "@/lib/services/conhecimento";
 import { FormularioConhecimento } from "../../formulario";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +23,13 @@ export default async function EditarConhecimentoPage({ params }: { params: Promi
     );
   }
 
-  const [item, opcoes] = await Promise.all([obterConhecimento(id), opcoesDoConhecimento()]);
+  const item = await obterConhecimento(id);
   if (!item) notFound();
 
   return (
     <>
       <PageHeader titulo="Editar comando" descricao={item.titulo} />
-      <FormularioConhecimento opcoes={opcoes} item={item} />
+      <FormularioConhecimento item={item} />
     </>
   );
 }

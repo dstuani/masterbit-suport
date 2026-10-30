@@ -794,6 +794,19 @@ async function main() {
     `insert into conhecimentos (org_id, titulo, descricao, comando) values ('${orgId}', 'x', 'y', '   ')`,
     "conhecimentos_comando_valido",
   );
+  await comoUsuario(
+    userId,
+    `insert into conhecimentos (org_id, titulo, comando) values ($1, 'Sem descrição', 'select 1')`,
+    [orgId],
+  );
+  const { rows: semDescricao } = await db.query(`select descricao from conhecimentos where titulo = 'Sem descrição'`);
+  verificar("comando sem descrição é aceito", semDescricao.length === 1 && semDescricao[0].descricao === null);
+  await deveRejeitar(
+    db,
+    "sessão desconhecida é recusada",
+    `insert into conhecimentos (org_id, tipo, titulo, descricao, comando) values ('${orgId}', 'outra', 'x', 'y', 'select 1')`,
+    "conhecimentos_tipo_valido",
+  );
   await comoUsuario(userId, `delete from conhecimentos`);
   const { rows: conhApagado } = await db.query(`select count(*)::int as n from conhecimentos`);
   verificar("excluir apaga o comando de vez", conhApagado[0].n === 0);

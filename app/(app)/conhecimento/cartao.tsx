@@ -8,11 +8,13 @@ import { excluirConhecimentoAction } from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { TipoConhecimento } from "@/lib/schemas/conhecimento";
 
 export type ItemConhecimento = {
   id: string;
+  tipo: TipoConhecimento;
   titulo: string;
-  descricao: string;
+  descricao: string | null;
   comando: string;
   sistema: string | null;
   categoria: string | null;
@@ -58,6 +60,7 @@ export function CartaoConhecimento({
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">{item.titulo}</h2>
             <div className="mt-1 flex flex-wrap gap-1.5">
+              <Badge>{item.tipo === "select" ? "Select" : "Configurações"}</Badge>
               {item.sistema ? <Badge>{item.sistema}</Badge> : null}
               {item.categoria ? <Badge>{item.categoria}</Badge> : null}
             </div>
@@ -76,7 +79,7 @@ export function CartaoConhecimento({
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={copiar}>
               {copiado ? <Check /> : <Copy />}
-              {copiado ? "Copiado" : "Copiar SQL"}
+              {copiado ? "Copiado" : item.tipo === "select" ? "Copiar SQL" : "Copiar"}
             </Button>
             {podeEditar ? (
               <>
@@ -104,7 +107,7 @@ export function CartaoConhecimento({
 
         {verSql ? (
           <>
-            <p className="text-sm whitespace-pre-wrap">{item.descricao}</p>
+            {item.descricao ? <p className="text-sm whitespace-pre-wrap">{item.descricao}</p> : null}
             <pre className="max-h-80 overflow-auto rounded-app border border-border bg-surface-muted p-3 text-xs leading-relaxed">
               <code>{item.comando}</code>
             </pre>

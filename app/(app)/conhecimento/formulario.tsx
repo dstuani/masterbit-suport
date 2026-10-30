@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 
 import { atualizarConhecimentoAction, criarConhecimentoAction } from "./actions";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { estadoInicial } from "@/lib/forms";
+import type { TipoConhecimento } from "@/lib/schemas/conhecimento";
 import type { Conhecimento } from "@/lib/services/conhecimento";
 
 function Mensagem({ texto }: { texto?: string | null }) {
@@ -22,17 +23,19 @@ function Mensagem({ texto }: { texto?: string | null }) {
   );
 }
 
-type Opcoes = {
-  sistemas: { id: string; nome: string }[];
-  categorias: { id: string; nome: string }[];
-};
-
-export function FormularioConhecimento({ opcoes, item }: { opcoes: Opcoes; item?: Conhecimento }) {
+export function FormularioConhecimento({
+  item,
+  tipoInicial,
+}: {
+  item?: Conhecimento;
+  tipoInicial?: TipoConhecimento;
+}) {
   const editando = Boolean(item);
   const [estado, acao, pendente] = useActionState(
     editando ? atualizarConhecimentoAction : criarConhecimentoAction,
     estadoInicial,
   );
+  const [tipo, setTipo] = useState(item?.tipo ?? tipoInicial ?? "");
   const erroDe = (campo: string) => estado.campos?.[campo];
 
   return (
@@ -41,47 +44,21 @@ export function FormularioConhecimento({ opcoes, item }: { opcoes: Opcoes; item?
 
       <Card>
         <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
+          <Campo id="tipo" rotulo="Sessão" obrigatorio className="sm:col-span-2">
+            <Select id="tipo" name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Selecione…</option>
+              <option value="configuracao">Configurações</option>
+              <option value="select">Select</option>
+            </Select>
+            <Mensagem texto={erroDe("tipo")} />
+          </Campo>
+
           <Campo id="titulo" rotulo="Título" obrigatorio className="sm:col-span-2">
             <Input id="titulo" name="titulo" defaultValue={item?.titulo ?? ""} maxLength={160} />
             <Mensagem texto={erroDe("titulo")} />
           </Campo>
 
-          <Campo id="sistema_id" rotulo="Sistema">
-            <Select id="sistema_id" name="sistema_id" defaultValue={item?.sistema_id ?? ""}>
-              <option value="">Nenhum</option>
-              {opcoes.sistemas.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nome}
-                </option>
-              ))}
-            </Select>
-            <Mensagem texto={erroDe("sistema_id")} />
-          </Campo>
-
-          <Campo id="categoria_id" rotulo="Categoria">
-            <Select id="categoria_id" name="categoria_id" defaultValue={item?.categoria_id ?? ""}>
-              <option value="">Nenhuma</option>
-              {opcoes.categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
-            </Select>
-            <Mensagem texto={erroDe("categoria_id")} />
-          </Campo>
-
-          <Campo
-            id="descricao"
-            rotulo="Descrição"
-            obrigatorio
-            dica="Escreva com as palavras que você buscaria depois: o que o comando faz, a tabela, o sintoma."
-            className="sm:col-span-2"
-          >
-            <Textarea id="descricao" name="descricao" rows={4} defaultValue={item?.descricao ?? ""} maxLength={4000} />
-            <Mensagem texto={erroDe("descricao")} />
-          </Campo>
-
-          <Campo id="comando" rotulo="Comando SQL" obrigatorio className="sm:col-span-2">
+          <Campo id="comando" rotulo={tipo === "configuracao" ? "Configuração" : "Comando SQL"} obrigatorio className="sm:col-span-2">
             <Textarea
               id="comando"
               name="comando"
@@ -104,10 +81,10 @@ export function FormularioConhecimento({ opcoes, item }: { opcoes: Opcoes; item?
 
       <div className="flex gap-2">
         <Button type="submit" disabled={pendente}>
-          {pendente ? "Salvando…" : editando ? "Salvar alterações" : "Cadastrar comando"}
+          {pendente ? "Salvando…" : editando ? "Salvar alterações" : "Incluir"}
         </Button>
         <Button asChild variant="outline">
-          <Link href="/conhecimento">Cancelar</Link>
+          <Link href={tipo ? `/conhecimento?tipo=${tipo}` : "/conhecimento"}>Cancelar</Link>
         </Button>
       </div>
     </form>

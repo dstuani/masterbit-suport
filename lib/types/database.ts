@@ -853,7 +853,7 @@ export type Database = {
           id: string;
           org_id: string;
           titulo: string;
-          descricao: string;
+          descricao: string | null;
           comando: string;
           sistema_id: string | null;
           categoria_id: string | null;
@@ -861,12 +861,13 @@ export type Database = {
           updated_by: string | null;
           created_at: string;
           updated_at: string;
+          tipo: string;
         };
         Insert: {
           id?: string;
           org_id: string;
           titulo: string;
-          descricao: string;
+          descricao?: string | null;
           comando: string;
           sistema_id?: string | null;
           categoria_id?: string | null;
@@ -874,12 +875,13 @@ export type Database = {
           updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          tipo?: string;
         };
         Update: {
           id?: string;
           org_id?: string;
           titulo?: string;
-          descricao?: string;
+          descricao?: string | null;
           comando?: string;
           sistema_id?: string | null;
           categoria_id?: string | null;
@@ -887,6 +889,7 @@ export type Database = {
           updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          tipo?: string;
         };
         Relationships: [
           {
