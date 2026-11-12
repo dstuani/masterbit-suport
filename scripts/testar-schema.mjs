@@ -1054,6 +1054,87 @@ async function main() {
     "chave_invalida",
   );
 
+  // ── Acesso remoto (RustDesk): ID pela coleta; senha e servidor só para quem escreve ──
+  const CHAVE_RD = "mbk_teste_chave_rustdesk_7890123";
+  await db.exec(
+    `insert into coleta_chaves (org_id, cliente_id, hash, prefixo)
+     values ('${orgId}', '${clienteId}', encode(sha256(convert_to('${CHAVE_RD}', 'UTF8')), 'hex'), 'mbk_rust')`,
+  );
+  const maquinaRd = { identificador: "rustdesk-maquina-0001", nome: "BALCAO-02", rustdesk_id: " 123 456 789 " };
+  const idRustdesk = async () =>
+    (await db.query(`select rustdesk_id from equipamentos where identificador = $1`, [maquinaRd.identificador])).rows[0]
+      .rustdesk_id;
+  const liberarNovaColeta = () =>
+    db.exec(
+      `update equipamentos set ultima_coleta_em = now() - interval '10 minutes'
+        where identificador = '${maquinaRd.identificador}'`,
+    );
+
+  await coleta(maquinaRd, CHAVE_RD);
+  verificar("coleta grava o ID do RustDesk sem os espaços", (await idRustdesk()) === "123456789");
+
+  await liberarNovaColeta();
+  await coleta({ ...maquinaRd, rustdesk_id: undefined }, CHAVE_RD);
+  verificar("coleta sem ID do RustDesk mantém o ID anterior", (await idRustdesk()) === "123456789");
+
+  await liberarNovaColeta();
+  const { rows: rdInvalido } = await coleta({ ...maquinaRd, rustdesk_id: "id'; drop table x" }, CHAVE_RD);
+  verificar(
+    "ID do RustDesk fora do formato é descartado sem perder a coleta",
+    rdInvalido[0].r === "ok" && (await idRustdesk()) === "123456789",
+  );
+
+  await deveRejeitar(
+    db,
+    "senha do RustDesk com espaço ou aspas é recusada",
+    `insert into cliente_acesso_remoto (cliente_id, org_id, senha) values ('${clienteId}', '${orgId}', 'senha com "aspas"')`,
+    "acesso_senha_valida",
+  );
+  await deveRejeitar(
+    db,
+    "configuração do servidor RustDesk fora do formato é recusada",
+    `insert into acesso_remoto_config (org_id, rustdesk_config) values ('${orgId}', 'nao é uma config string')`,
+    "acesso_config_valida",
+  );
+
+  await comoUsuario(
+    userId,
+    `insert into cliente_acesso_remoto (cliente_id, org_id, senha) values ($1, $2, 'Senha-Forte_2026')`,
+    [clienteId, orgId],
+  );
+  await comoUsuario(
+    userId,
+    `insert into acesso_remoto_config (org_id, rustdesk_config) values ($1, '=0nI3ZWZpRmIlNnI6ISeltmIsIiI6ISawFmIsIi')`,
+    [orgId],
+  );
+  const { rows: senhaOwner } = await comoUsuario(userId, `select senha from cliente_acesso_remoto`);
+  verificar("owner grava e lê a senha do RustDesk do cliente", senhaOwner[0]?.senha === "Senha-Forte_2026");
+
+  await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
+  await db.exec(`update profiles set role = 'visualizador', ativo = true where id = '${tecnicoId}'`);
+  const { rows: senhaVis } = await comoUsuario(tecnicoId, `select senha from cliente_acesso_remoto`);
+  const { rows: configVis } = await comoUsuario(tecnicoId, `select rustdesk_config from acesso_remoto_config`);
+  verificar("visualizador não vê a senha nem o servidor do RustDesk", senhaVis.length === 0 && configVis.length === 0);
+  await rejeitaComo(
+    tecnicoId,
+    "visualizador não grava senha do RustDesk",
+    `insert into cliente_acesso_remoto (cliente_id, org_id, senha) values ('${outroClienteId}', '${orgId}', 'OutraSenha123')`,
+    "row-level security",
+  );
+
+  for (const [papel, id] of [
+    ["solicitante", solId],
+    ["agenda", agId],
+  ]) {
+    const { rows } = await comoUsuario(id, `select senha from cliente_acesso_remoto`);
+    verificar(`${papel} não vê a senha do RustDesk`, rows.length === 0);
+  }
+
+  await db.exec(`update auth.sessao_teste set usuario = '${userId}'`);
+  await db.exec(`update profiles set role = 'tecnico' where id = '${tecnicoId}'`);
+  const { rows: senhaTec } = await comoUsuario(tecnicoId, `select senha from cliente_acesso_remoto`);
+  verificar("técnico ativo vê a senha do RustDesk", senhaTec.length === 1);
+
   await db.close();
 
   console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);

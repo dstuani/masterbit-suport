@@ -110,7 +110,7 @@ própria tela Equipe (exige a service role key) já saem ativos.
 | `npm run lint` | ESLint |
 | `npm run test:forms` | valida os schemas Zod contra o que os formulários enviam |
 | `npm run db:check` | aplica todas as migrations num Postgres em WASM e confere estrutura e RLS |
-| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (121 verificações) |
+| `npm run db:test` | testa triggers, constraints e o RLS, inclusive entrando como cada papel restrito (132 verificações) |
 | `npm run db:types:local` | regera `lib/types/database.ts` a partir das migrations, offline |
 | `npm run db:push` | aplica as migrations no Supabase real (exige `npx supabase link`) |
 | `npm run db:types` | regera os tipos a partir do projeto Supabase vinculado |
@@ -226,7 +226,7 @@ vira memória consultável em Consultas e Casos parecidos.
 
 ## 5. Banco de dados
 
-25 tabelas, 1 view, RLS em todas. Papéis: owner, tecnico, visualizador, solicitante, agenda. Toda tabela de negócio tem `org_id`.
+27 tabelas, 1 view, RLS em todas. Papéis: owner, tecnico, visualizador, solicitante, agenda. Toda tabela de negócio tem `org_id`.
 
 ```
 organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualizador; ativo)
@@ -251,6 +251,8 @@ organizacoes ─┬─ profiles (1:1 com auth.users; role owner|tecnico|visualiz
               ├─ equipamentos ── cliente, filial ─┬─ equipamento_manutencoes (append-only; tipo, peças, custo)
               │                                    └─ equipamento_alteracoes (hardware que mudou entre coletas)
               ├─ coleta_chaves (por cliente; só o hash SHA-256 da chave)
+              ├─ cliente_acesso_remoto (senha permanente do RustDesk, uma por cliente)
+              ├─ acesso_remoto_config (config string do servidor RustDesk da organização)
               ├─ conhecimentos (Base de conhecimento: titulo, descricao, comando SQL; sistema e categoria opcionais)
               ├─ solicitacoes (formulário público da landing; só a função
               │               registrar_solicitacao() cria linhas)
@@ -542,3 +544,16 @@ português, curtos.
     para eles usa `org_restrita()`. `acumular_tempo_interacao` virou SECURITY DEFINER para a
     mensagem do solicitante subir o atendimento na lista. O desvio de rota (`x-caminho`) é só
     conveniência; os dados são barrados pelo RLS (testado com `SET ROLE` em `db:test`).
+24. **Acesso remoto pelo RustDesk (migration `20261110120000`).** O servidor (Ubuntu ou VPS) fica
+    fora deste código; o guia está em `docs/rustdesk-servidor-ubuntu.md`. A config string do
+    servidor (Configurações → Acesso remoto) e a senha de cada cliente (ficha do cliente, aba
+    Equipamentos) só são lidas por owner e técnico (RLS testado em `db:test`). A senha fica em texto
+    porque o técnico precisa dela; essas tabelas **não** têm auditoria automática, que gravaria a
+    senha em `audit_logs` — não acrescente. O script gerado leva servidor e senha; no `-Instalar` ele
+    baixa o RustDesk do GitHub oficial, recusa instalador sem assinatura digital válida, instala o
+    serviço e aplica `--config` e `--password`. A cópia em `C:\ProgramData\MasterbitSuport` é gravada
+    **sem a senha** (a linha `$RustDeskSenha` é zerada). Trocar a senha no sistema não muda máquinas já
+    instaladas: é preciso rodar um script novo. A coleta diária envia o ID (`rustdesk.exe --get-id`);
+    coleta sem ID mantém o anterior. O botão Conectar usa `rustdesk://connection/new/<id>`
+    (`lib/rustdesk.ts`) e nunca leva a senha no link. Os caracteres da senha são limitados porque ela
+    vai numa linha de comando do Windows; regra igual na constraint e em `FORMATO_SENHA_RUSTDESK`.

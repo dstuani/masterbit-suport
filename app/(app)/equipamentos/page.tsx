@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, ChevronRight, Monitor, Plus, Search } from "lucide-react";
+import { BarChart3, ChevronRight, Monitor, MonitorPlay, Plus, Search } from "lucide-react";
 
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
@@ -18,6 +18,7 @@ import {
   type EquipamentoComContexto,
   type FiltrosEquipamentos,
 } from "@/lib/services/equipamentos";
+import { formatarIdRustdesk, linkRustdesk } from "@/lib/rustdesk";
 import { cn, formatarMemoria, formatarRelativo } from "@/lib/utils";
 import { ExpandirTodos } from "./expandir";
 
@@ -251,6 +252,16 @@ function LinhaEquipamento({ equipamento: e, limite }: { equipamento: Equipamento
           </Link>
           <Badge>{TIPOS_EQUIPAMENTO[e.tipo as keyof typeof TIPOS_EQUIPAMENTO] ?? e.tipo}</Badge>
           {!e.ativo ? <Badge>Desativado</Badge> : null}
+          {e.rustdesk_id ? (
+            <a
+              href={linkRustdesk(e.rustdesk_id)}
+              className="inline-flex items-center gap-1 rounded-app px-1.5 py-0.5 text-xs text-primary hover:bg-primary/10"
+              title={`Conectar pelo RustDesk (ID ${formatarIdRustdesk(e.rustdesk_id)})`}
+            >
+              <MonitorPlay className="size-3.5" />
+              Conectar
+            </a>
+          ) : null}
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {[e.filiais?.nome, e.patrimonio ? `Patr. ${e.patrimonio}` : null, e.setor, e.usuario].filter(Boolean).join(" · ") || "—"}

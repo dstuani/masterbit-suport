@@ -28,10 +28,12 @@ export function ColetaAutomatica({
   clienteId,
   chaves,
   podeEditar,
+  instalaRustdesk,
 }: {
   clienteId: string;
   chaves: ChaveDeColeta[];
   podeEditar: boolean;
+  instalaRustdesk: boolean;
 }) {
   const [estado, acao, pendente] = useActionState(gerarChaveAction, inicial);
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -47,6 +49,11 @@ export function ColetaAutomatica({
         <p className="text-sm text-muted-foreground">
           Um script instalado em cada computador do cliente envia o hardware uma vez por dia e ao ligar. Ele
           usa uma chave deste cliente: quem tiver a chave só consegue enviar inventário para cá.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {instalaRustdesk
+            ? "RustDesk: o script gerado agora também instala o RustDesk, aponta para o seu servidor e aplica a senha deste cliente."
+            : "RustDesk: o script gerado agora não instala o RustDesk (falta o servidor ou a senha no card acima); se a máquina já tiver RustDesk, ele só envia o ID."}
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -72,6 +79,12 @@ export function ColetaAutomatica({
                   </code>
                 </li>
                 <li>A máquina aparece em Equipamentos em alguns segundos. Repita em cada computador.</li>
+                {instalaRustdesk ? (
+                  <li>
+                    Ao terminar, apague o arquivo do pen drive ou da pasta de onde o copiou: ele contém a senha do
+                    RustDesk. A cópia instalada no computador fica sem ela.
+                  </li>
+                ) : null}
               </ol>
               <p className="mt-3 text-xs text-muted-foreground">
                 Para ver o que seria enviado sem enviar nada, use <code>-Mostrar</code> no lugar de <code>-Instalar</code>.

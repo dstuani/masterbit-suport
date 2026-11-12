@@ -131,6 +131,27 @@ export function FormularioEquipamento({
             <Mensagem texto={erroDe("numero_serie")} />
           </Campo>
 
+          <Campo
+            id="rustdesk_id"
+            rotulo="ID do RustDesk"
+            dica={
+              coletado
+                ? "Vem da coleta quando o RustDesk está instalado; o ID enviado pela coleta substitui este."
+                : "Como aparece no RustDesk da máquina. Ex.: 123 456 789."
+            }
+          >
+            <Input
+              id="rustdesk_id"
+              name="rustdesk_id"
+              defaultValue={equipamento?.rustdesk_id ?? ""}
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              className="font-mono"
+            />
+            <Mensagem texto={erroDe("rustdesk_id")} />
+          </Campo>
+
           <Campo id="observacoes" rotulo="Observações" className="sm:col-span-2">
             <Textarea id="observacoes" name="observacoes" defaultValue={equipamento?.observacoes ?? ""} maxLength={2000} />
             <Mensagem texto={erroDe("observacoes")} />

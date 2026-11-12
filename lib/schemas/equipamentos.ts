@@ -20,7 +20,23 @@ const uuidOpcional = z
 
 export const TIPO_EQUIPAMENTO = ["computador", "notebook", "servidor", "impressora", "outro"] as const;
 
+// Mesmas regras das constraints da migration 20261110120000.
+export const FORMATO_ID_RUSTDESK = /^[A-Za-z0-9_-]{6,32}$/;
+export const FORMATO_SENHA_RUSTDESK = /^[A-Za-z0-9!@#%&*+=?_.:-]{8,64}$/;
+const FORMATO_CONFIG_RUSTDESK = /^[A-Za-z0-9+/=_-]{20,4000}$/;
+
+// "123 456 789" é como o RustDesk mostra o ID: os espaços saem antes de validar.
+const idRustdesk = z
+  .string()
+  .optional()
+  .transform((v) => {
+    const limpo = (v ?? "").replace(/\s/g, "");
+    return limpo.length > 0 ? limpo : null;
+  })
+  .refine((v) => v === null || FORMATO_ID_RUSTDESK.test(v), "ID inválido: só letras, números, hífen ou sublinhado (6 a 32)");
+
 const camposDoEquipamento = {
+  rustdesk_id: idRustdesk,
   filial_id: uuidOpcional,
   nome: z.string().trim().min(1, "Informe o nome").max(120, "Até 120 caracteres"),
   tipo: z.enum(TIPO_EQUIPAMENTO, "Tipo inválido"),
@@ -101,6 +117,25 @@ export const gerarChaveSchema = z.object({
 export const revogarChaveSchema = z.object({
   id: z.uuid("Chave inválida"),
   cliente_id: z.uuid("Cliente inválido"),
+});
+
+export const senhaRustdeskSchema = z.object({
+  cliente_id: z.uuid("Cliente inválido"),
+  senha: z
+    .string()
+    .trim()
+    .regex(FORMATO_SENHA_RUSTDESK, "8 a 64 caracteres: letras, números e ! @ # % & * + = ? _ . : - (sem espaço, aspas, acento ou $)"),
+});
+
+export const configRustdeskSchema = z.object({
+  // A config string do RustDesk às vezes é copiada com quebra de linha no meio.
+  rustdesk_config: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ""))
+    .refine(
+      (v) => FORMATO_CONFIG_RUSTDESK.test(v),
+      "Cole o texto de Configurações → Rede → Exportar configuração do servidor, no RustDesk já configurado",
+    ),
 });
 
 export type DadosEquipamento = z.infer<typeof equipamentoSchema>;

@@ -11,6 +11,12 @@
 import { atendimentoSchema, conclusaoSchema, interacaoSchema, mudancaStatusSchema } from "../lib/schemas/atendimentos";
 import { clienteSchema, contatoSchema, filialSchema } from "../lib/schemas/cadastros";
 import { conhecimentoSchema } from "../lib/schemas/conhecimento";
+import {
+  configRustdeskSchema,
+  edicaoEquipamentoSchema,
+  equipamentoSchema,
+  senhaRustdeskSchema,
+} from "../lib/schemas/equipamentos";
 import { criarUsuarioSchema } from "../lib/schemas/equipe";
 import { mensagemSchema, pedidoSchema } from "../lib/schemas/meus-atendimentos";
 
@@ -242,6 +248,24 @@ aceita("comando só com o essencial", conhecimentoSchema, {
 recusa("item sem sessão", conhecimentoSchema, { titulo: "Estoque negativo", descricao: "Lista produtos", comando: "select 1" });
 recusa("comando sem SQL", conhecimentoSchema, { tipo: "select", titulo: "Estoque negativo", descricao: "Lista produtos", comando: "  " });
 aceita("comando sem descrição", conhecimentoSchema, { tipo: "select", titulo: "Estoque negativo", comando: "select 1" });
+
+// Equipamento e acesso remoto (RustDesk)
+const equipamentoMinimo = { cliente_id: UUID, nome: "CAIXA-01", tipo: "computador" };
+const eqSemId = aceita("equipamento sem ID do RustDesk", equipamentoSchema, equipamentoMinimo);
+verificar("ID do RustDesk ausente vira null", eqSemId.success && equipamentoSchema.parse(equipamentoMinimo).rustdesk_id === null);
+const comId = equipamentoSchema.safeParse({ ...equipamentoMinimo, rustdesk_id: " 123 456 789 " });
+verificar("ID do RustDesk perde os espaços", comId.success && comId.data.rustdesk_id === "123456789");
+recusa("ID do RustDesk com aspas", equipamentoSchema, { ...equipamentoMinimo, rustdesk_id: "12345'; drop" });
+aceita("edição de equipamento sem ID do RustDesk", edicaoEquipamentoSchema, { id: UUID, nome: "CAIXA-01", tipo: "computador" });
+
+aceita("senha do RustDesk forte", senhaRustdeskSchema, { cliente_id: UUID, senha: "Masterbit-2026!x" });
+recusa("senha do RustDesk curta", senhaRustdeskSchema, { cliente_id: UUID, senha: "abc123" });
+recusa("senha do RustDesk com espaço", senhaRustdeskSchema, { cliente_id: UUID, senha: "senha com espaco" });
+recusa("senha do RustDesk com $", senhaRustdeskSchema, { cliente_id: UUID, senha: "Senha$Forte2026" });
+
+const config = configRustdeskSchema.safeParse({ rustdesk_config: "=0nI3ZWZpRmIlNnI6\nISeltmIsIiI6ISawFmIsIi " });
+verificar("config do RustDesk colada com quebra de linha é limpa", config.success && !/\s/.test(config.data.rustdesk_config));
+recusa("config do RustDesk com texto qualquer", configRustdeskSchema, { rustdesk_config: "servidor: meu.host" });
 
 console.log(`\n${passou} verificações passaram, ${falhas.length} falharam`);
 if (falhas.length > 0) process.exit(1);

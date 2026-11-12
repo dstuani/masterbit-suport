@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { obterPerfil, podeEscrever } from "@/lib/auth";
 import { ehRestrito, ROTULOS_PAPEL } from "@/lib/papeis";
+import { obterConfigRustdesk } from "@/lib/services/acesso-remoto";
 import { opcoesDoCadastro } from "@/lib/services/equipamentos";
 import { serviceRoleConfigurado, serviceRolePreenchida, supabaseConfigurado } from "@/lib/env";
 import { listarCategorias, listarSistemas } from "@/lib/services/catalogo";
@@ -18,6 +19,7 @@ import {
   FormularioPerfil,
   FormularioSenha,
 } from "./formularios-equipe";
+import { FormularioServidorRustdesk } from "./acesso-remoto";
 import { InstalarApp } from "./instalar-app";
 import { SeletorDeTema } from "./seletor-de-tema";
 
@@ -25,11 +27,12 @@ export const metadata = { title: "Configurações" };
 export const dynamic = "force-dynamic";
 
 const ABAS = [
-  { chave: "sistemas", rotulo: "Sistemas", soOwner: false },
-  { chave: "categorias", rotulo: "Categorias", soOwner: false },
-  { chave: "conta", rotulo: "Conta", soOwner: false },
-  { chave: "equipe", rotulo: "Equipe", soOwner: true },
-  { chave: "auditoria", rotulo: "Auditoria", soOwner: true },
+  { chave: "sistemas", rotulo: "Sistemas", soOwner: false, soEscrita: false },
+  { chave: "categorias", rotulo: "Categorias", soOwner: false, soEscrita: false },
+  { chave: "acesso-remoto", rotulo: "Acesso remoto", soOwner: false, soEscrita: true },
+  { chave: "conta", rotulo: "Conta", soOwner: false, soEscrita: false },
+  { chave: "equipe", rotulo: "Equipe", soOwner: true, soEscrita: false },
+  { chave: "auditoria", rotulo: "Auditoria", soOwner: true, soEscrita: false },
 ] as const;
 
 
@@ -103,15 +106,18 @@ export default async function ConfiguracoesPage({
   const podeEditar = perfil !== null && podeEscrever(perfil);
   // Papéis restritos (solicitante, agenda) só têm a própria conta: tema e senha.
   const restrito = ehRestrito(perfil?.role);
-  const abasVisiveis = ABAS.filter((a) => (restrito ? a.chave === "conta" : !a.soOwner || ehOwner));
+  const abasVisiveis = ABAS.filter((a) =>
+    restrito ? a.chave === "conta" : (!a.soOwner || ehOwner) && (!a.soEscrita || podeEditar),
+  );
   const aba = abasVisiveis.some((a) => a.chave === abaParam) ? abaParam! : abasVisiveis[0].chave;
 
-  const [sistemas, categorias, equipe, auditoria, cadastro] = await Promise.all([
+  const [sistemas, categorias, equipe, auditoria, cadastro, servidorRustdesk] = await Promise.all([
     restrito ? Promise.resolve([]) : listarSistemas(true),
     restrito ? Promise.resolve([]) : listarCategorias(),
     aba === "equipe" && ehOwner ? listarEquipe() : Promise.resolve([]),
     aba === "auditoria" && ehOwner ? listarAuditoria({ tabela }, pagina) : Promise.resolve(null),
     aba === "equipe" && ehOwner ? opcoesDoCadastro() : Promise.resolve({ clientes: [], filiais: [] }),
+    aba === "acesso-remoto" && podeEditar ? obterConfigRustdesk() : Promise.resolve(null),
   ]);
   const nomeDoCliente = new Map(cadastro.clientes.map((c) => [c.id, c.razao_social]));
 
@@ -119,15 +125,15 @@ export default async function ConfiguracoesPage({
     <>
       <PageHeader titulo="Configurações" descricao="Cadastros de apoio, preferências e acesso." />
 
-      <nav className="mb-4 flex gap-1 border-b border-border">
+      <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-border">
         {abasVisiveis.map((item) => (
           <Link
             key={item.chave}
             href={`/configuracoes?aba=${item.chave}`}
             className={
               item.chave === aba
-                ? "border-b-2 border-primary px-3 py-2 text-sm font-medium text-primary"
-                : "border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                ? "shrink-0 border-b-2 border-primary px-3 py-2 text-sm font-medium whitespace-nowrap text-primary"
+                : "shrink-0 border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground"
             }
           >
             {item.rotulo}
@@ -251,6 +257,36 @@ export default async function ConfiguracoesPage({
               </CardContent>
             </Card>
           ) : null}
+        </div>
+      ) : null}
+
+      {aba === "acesso-remoto" && podeEditar ? (
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Servidor RustDesk</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                O servidor RustDesk próprio (o seu Ubuntu ou VPS) que substitui o AnyDesk. O script de coleta usa
+                esta configuração para instalar o RustDesk nos computadores dos clientes já apontado para ele. A
+                senha de acesso é de cada cliente: fica na ficha dele, aba Equipamentos.
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {servidorRustdesk ? (
+                <p className="text-sm">
+                  <Badge className="mr-2">Configurado</Badge>
+                  <span className="text-muted-foreground">
+                    última alteração em {formatarDataHora(servidorRustdesk.updated_at)}
+                  </span>
+                </p>
+              ) : null}
+              <FormularioServidorRustdesk atual={servidorRustdesk?.rustdesk_config ?? null} />
+              <p className="text-xs text-muted-foreground">
+                Trocar o servidor aqui vale para os scripts gerados daqui em diante. Computadores já instalados
+                continuam no servidor antigo até rodar um script novo com -Instalar.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       ) : null}
 

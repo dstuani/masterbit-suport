@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { categoriaSchema, dadosDoFormulario, sistemaSchema, subcategoriaSchema } from "@/lib/schemas/cadastros";
+import { configRustdeskSchema } from "@/lib/schemas/equipamentos";
+import { salvarConfigRustdesk } from "@/lib/services/acesso-remoto";
 import { salvarCategoria, salvarSistema, salvarSubcategoria } from "@/lib/services/catalogo";
 import { erroDeValidacao, mensagemDoErro, type EstadoFormulario } from "@/lib/forms";
 
@@ -55,6 +57,23 @@ export async function salvarSubcategoriaAction(
 
   try {
     await salvarSubcategoria(analise.data, typeof id === "string" && id ? id : undefined);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath("/configuracoes");
+  return { erro: null };
+}
+
+export async function salvarConfigRustdeskAction(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const analise = configRustdeskSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return erroDeValidacao(analise.error.issues);
+
+  try {
+    await salvarConfigRustdesk(analise.data.rustdesk_config);
   } catch (erro) {
     return { erro: mensagemDoErro(erro) };
   }

@@ -13,9 +13,11 @@ import {
   gerarChaveSchema,
   manutencaoSchema,
   revogarChaveSchema,
+  senhaRustdeskSchema,
   situacaoEquipamentoSchema,
   type EstadoChave,
 } from "@/lib/schemas/equipamentos";
+import { rustdeskParaScript, salvarSenhaRustdesk } from "@/lib/services/acesso-remoto";
 import { obterCliente } from "@/lib/services/clientes";
 import {
   atualizarEquipamento,
@@ -95,6 +97,7 @@ export async function gerarChaveAction(_estado: EstadoChave, formData: FormData)
     const cliente = await obterCliente(analise.data.cliente_id);
     if (!cliente) return { erro: "Cliente não encontrado." };
 
+    const rustdesk = await rustdeskParaScript(analise.data.cliente_id);
     const chave = await gerarChave(analise.data.cliente_id, analise.data.descricao);
     // URL e chave pública são as mesmas que o navegador já recebe; nunca a service role.
     const script = montarScriptAgente({
@@ -102,6 +105,7 @@ export async function gerarChaveAction(_estado: EstadoChave, formData: FormData)
       chavePublica: env.supabaseAnonKey,
       chaveColeta: chave,
       cliente: cliente.razao_social,
+      rustdesk,
     });
 
     revalidatePath(`/clientes/${analise.data.cliente_id}`);
@@ -109,6 +113,23 @@ export async function gerarChaveAction(_estado: EstadoChave, formData: FormData)
   } catch (erro) {
     return { erro: mensagemDoErro(erro) };
   }
+}
+
+export async function salvarSenhaRustdeskAction(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const analise = senhaRustdeskSchema.safeParse(dadosDoFormulario(formData));
+  if (!analise.success) return erroDeValidacao(analise.error.issues);
+
+  try {
+    await salvarSenhaRustdesk(analise.data.cliente_id, analise.data.senha);
+  } catch (erro) {
+    return { erro: mensagemDoErro(erro) };
+  }
+
+  revalidatePath(`/clientes/${analise.data.cliente_id}`);
+  return { erro: null };
 }
 
 export async function revogarChaveAction(formData: FormData): Promise<void> {

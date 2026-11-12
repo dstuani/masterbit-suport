@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus, Power, Wrench } from "lucide-react";
+import { MonitorPlay, Pencil, Plus, Power, Wrench } from "lucide-react";
 
 import { AvisoSupabase } from "@/components/layout/aviso-supabase";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,9 +17,11 @@ import {
   listarManutencoes,
   obterEquipamento,
 } from "@/lib/services/equipamentos";
+import { obterSenhaRustdesk } from "@/lib/services/acesso-remoto";
 import { descreverAlteracao } from "@/lib/services/relatorio-equipamentos";
 import { formatarData, formatarDataHora, formatarDuracao, formatarMemoria, formatarMoeda, formatarRelativo } from "@/lib/utils";
 import { mudarSituacaoEquipamentoAction } from "../actions";
+import { ConectarRustdesk } from "../conectar";
 import { FormularioManutencao } from "./manutencao";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +55,8 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
     atendimentosParaVincular(equipamento.cliente_id),
     podeEscreverAgora(),
   ]);
+  // A senha só é buscada para quem escreve; para os demais o RLS a devolveria vazia de qualquer jeito.
+  const senhaRustdesk = podeEditar && equipamento.rustdesk_id ? await obterSenhaRustdesk(equipamento.cliente_id) : null;
 
   const e = equipamento;
   const semColeta =
@@ -170,6 +174,27 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
         {/* Direita: ficha */}
         <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2">
+                <MonitorPlay className="size-4 text-muted-foreground" />
+                Acesso remoto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {e.rustdesk_id ? (
+                <ConectarRustdesk rustdeskId={e.rustdesk_id} senha={senhaRustdesk} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sem RustDesk.{" "}
+                  {e.origem === "agente"
+                    ? "Gere um script novo na ficha do cliente (com o servidor e a senha configurados) e rode o -Instalar nesta máquina."
+                    : "Informe o ID em Editar, ou instale a coleta automática nesta máquina."}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Hardware</CardTitle>

@@ -16,6 +16,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      acesso_remoto_config: {
+        Row: {
+          org_id: string;
+          rustdesk_config: string;
+          updated_at: string;
+        };
+        Insert: {
+          org_id: string;
+          rustdesk_config: string;
+          updated_at?: string;
+        };
+        Update: {
+          org_id?: string;
+          rustdesk_config?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acesso_remoto_config_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agenda_eventos: {
         Row: {
           id: string;
@@ -509,6 +535,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "categorias_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizacoes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      cliente_acesso_remoto: {
+        Row: {
+          cliente_id: string;
+          org_id: string;
+          senha: string;
+          updated_at: string;
+        };
+        Insert: {
+          cliente_id: string;
+          org_id: string;
+          senha: string;
+          updated_at?: string;
+        };
+        Update: {
+          cliente_id?: string;
+          org_id?: string;
+          senha?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cliente_acesso_remoto_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: true;
+            referencedRelation: "clientes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cliente_acesso_remoto_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "organizacoes";
@@ -1294,6 +1356,7 @@ export type Database = {
           coletas: number;
           created_at: string;
           updated_at: string;
+          rustdesk_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1325,6 +1388,7 @@ export type Database = {
           coletas?: number;
           created_at?: string;
           updated_at?: string;
+          rustdesk_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1356,6 +1420,7 @@ export type Database = {
           coletas?: number;
           created_at?: string;
           updated_at?: string;
+          rustdesk_id?: string | null;
         };
         Relationships: [
           {

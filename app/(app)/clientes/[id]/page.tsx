@@ -17,9 +17,11 @@ import {
   listarSistemasDoCliente,
   obterCliente,
 } from "@/lib/services/clientes";
+import { obterConfigRustdesk, obterSenhaRustdesk } from "@/lib/services/acesso-remoto";
 import { listarChaves, listarEquipamentos } from "@/lib/services/equipamentos";
 import { formatarData, formatarDocumento, formatarMemoria, formatarRelativo } from "@/lib/utils";
 import { removerSistemaDoClienteAction } from "../actions";
+import { AcessoRemotoDoCliente } from "./acesso-remoto";
 import { ColetaAutomatica } from "./coleta";
 import { SecaoContatos } from "./contatos";
 import { FormularioFilial, FormularioSistemaDoCliente } from "./formularios";
@@ -72,13 +74,15 @@ export default async function ClientePage({
   ]);
 
   // Só a aba de equipamentos precisa destes dados (e a lista de chaves só aparece para quem escreve).
-  const [equipamentos, chaves] =
+  const [equipamentos, chaves, senhaRustdesk, servidorRustdesk] =
     aba === "equipamentos"
       ? await Promise.all([
           listarEquipamentos({ clienteId: id, situacao: "ativos" }),
           podeEditar ? listarChaves(id) : Promise.resolve([]),
+          podeEditar ? obterSenhaRustdesk(id) : Promise.resolve(null),
+          podeEditar ? obterConfigRustdesk() : Promise.resolve(null),
         ])
-      : [[], []];
+      : [[], [], null, null];
 
   return (
     <>
@@ -256,7 +260,22 @@ export default async function ClientePage({
             )}
           </Card>
 
-          {podeEditar ? <ColetaAutomatica clienteId={id} chaves={chaves} podeEditar={podeEditar} /> : null}
+          {podeEditar ? (
+            <AcessoRemotoDoCliente
+              clienteId={id}
+              senha={senhaRustdesk}
+              servidorConfigurado={servidorRustdesk !== null}
+            />
+          ) : null}
+
+          {podeEditar ? (
+            <ColetaAutomatica
+              clienteId={id}
+              chaves={chaves}
+              podeEditar={podeEditar}
+              instalaRustdesk={senhaRustdesk !== null && servidorRustdesk !== null}
+            />
+          ) : null}
         </div>
       ) : null}
     </>
